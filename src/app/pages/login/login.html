@@ -1,0 +1,61 @@
+<div class="login-wrapper">
+  <div class="login-card">
+    <h2 style="color: #28a745; font-weight: bold;">🍽️ Recetario</h2>
+    <h3>Iniciar Sesión</h3>
+
+    <form [formGroup]="formLogin" (ngSubmit)="onSubmit()">
+
+      <!-- Campo correo -->
+      <div class="form-group">
+        <label for="email">Correo electrónico</label>
+        <input
+          id="email"
+          type="email"
+          placeholder="ejemplo@recetario.com"
+          formControlName="email"
+          [class.invalid]="submitted && email?.invalid"
+        />
+
+        <div class="error" *ngIf="submitted && email?.invalid">
+          <small *ngIf="email?.hasError('required')">El correo es obligatorio.</small>
+          <small *ngIf="email?.hasError('email')">Debe tener formato de correo válido.</small>
+        </div>
+      </div>
+
+      <!-- Campo contraseña -->
+      <div class="form-group">
+        <label for="password">Contraseña</label>
+        <input
+          id="password"
+          type="password"
+          placeholder="********"
+          formControlName="password"
+          [class.invalid]="submitted && password?.invalid"
+        />
+
+        <div class="error" *ngIf="submitted && password?.invalid">
+          <small *ngIf="password?.hasError('required')">La contraseña es obligatoria.</small>
+          <small *ngIf="password?.hasError('minlength')">Debe tener al menos 6 caracteres.</small>
+        </div>
+      </div>
+
+      <!-- Botón -->
+      <button type="submit" [disabled]="loading">
+        {{ loading ? 'Iniciando sesión...' : 'Ingresar' }}
+      </button>
+
+      <!-- Mensaje de error general -->
+      <div class="error-message" *ngIf="errorMessage">
+        {{ errorMessage }}
+      </div>
+    </form>
+
+    <p class="demo-info">
+      <strong>Demo:</strong><br>
+      admin@recetario.com / 123456<br>
+      chef@recetario.com / chef123
+    </p>
+  </div>
+</div>
+
+
