@@ -10,7 +10,7 @@ import { Router, RouterModule } from '@angular/router';
   templateUrl: './login.html',
   styleUrls: ['./login.css']
 })
-export class LoginComponent {
+export class Login {
   formLogin: FormGroup;
   loading = false;
   submitted = false;
@@ -48,10 +48,10 @@ export class LoginComponent {
 
       if (email === 'admin@recetario.com' && password === '123456') {
         alert('✅ Bienvenido Administrador al sistema Recetario');
-        this.router.navigate(['/home']);
+        this.router.navigate(['/']);
       } else if (email === 'chef@recetario.com' && password === 'chef123') {
         alert('👨‍🍳 Bienvenido Chef al Recetario');
-        this.router.navigate(['/home']);
+        this.router.navigate(['/']);
       } else {
         this.errorMessage = 'Correo o contraseña incorrectos. Intenta nuevamente.';
       }

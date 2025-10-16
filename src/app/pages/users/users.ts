@@ -11,7 +11,7 @@ import { FormField } from '../../components/form/form-field.model';
   templateUrl: './users.html',
   styleUrls: ['./users.css']
 })
-export class UsersComponent {
+export class Users {
   // ✅ Campos del formulario
   userFields: FormField[] = [
     { name: 'nombre', label: 'Nombre', required: true },

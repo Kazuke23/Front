@@ -1,6 +1,5 @@
 import { Component, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { LoginComponent } from './pages/login/login'; // ✅ login
 import { FormComponent } from './components/form/form'; // ✅ formulario
 import { TableComponent } from './components/table/table'; // ✅ tabla
 import { FormField } from './components/form/form-field.model'; // ✅ modelo del form
@@ -8,7 +7,7 @@ import { FormField } from './components/form/form-field.model'; // ✅ modelo de
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, LoginComponent, FormComponent, TableComponent], // ✅ todos los componentes
+  imports: [RouterOutlet, FormComponent, TableComponent], // ✅ todos los componentes
   templateUrl: './app.html',
 })
 export class App {
