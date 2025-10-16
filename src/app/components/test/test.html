@@ -1,0 +1,17 @@
+<div class="container">
+  <h1 style="text-align:center; margin-top:2rem;">Pruebas de Form y Table</h1>
+
+  <app-form
+    [fields]="formFields"
+    (formSubmit)="onFormSubmit($event)">
+  </app-form>
+
+  <h2 style="text-align:center; margin-top:3rem;">Datos</h2>
+
+  <app-table
+    [columns]="columns"
+    [data]="data"
+    (delete)="onDelete($event)"
+    (edit)="onEdit($event)">
+  </app-table>
+</div>

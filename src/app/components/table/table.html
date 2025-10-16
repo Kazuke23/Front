@@ -1,18 +1,24 @@
-<div class="table-container" *ngIf="data && data.length; else noData">
-  <table>
+<div class="table-container">
+  <table class="data-table">
     <thead>
       <tr>
         <th *ngFor="let col of columns">{{ col | titlecase }}</th>
+        <th>Acciones</th>
       </tr>
     </thead>
+
     <tbody>
-      <tr *ngFor="let item of data">
-        <td *ngFor="let col of columns">{{ item[col] }}</td>
+      <tr *ngFor="let row of data; let i = index">
+        <td *ngFor="let col of columns">{{ row[col] }}</td>
+        <td class="actions">
+          <button (click)="onEdit(row, i)" class="btn-edit">Editar</button>
+          <button (click)="onDelete(i)" class="btn-delete">Eliminar</button>
+        </td>
       </tr>
     </tbody>
   </table>
-</div>
 
-<ng-template #noData>
-  <p class="no-data">No hay datos para mostrar</p>
-</ng-template>
+  <p *ngIf="data.length === 0" class="empty-message">
+    No hay registros disponibles.
+  </p>
+</div>

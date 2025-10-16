@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
@@ -6,12 +6,20 @@ import { CommonModule } from '@angular/common';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './table.html',
-  styleUrl: './table.css'
+  styleUrls: ['./table.css']
 })
 export class TableComponent {
-  // Columnas que se mostrarán en la tabla
   @Input() columns: string[] = [];
-
-  // Datos que se renderizarán en filas
   @Input() data: any[] = [];
+
+  @Output() delete = new EventEmitter<number>();
+  @Output() edit = new EventEmitter<{ data: any, index: number }>();
+
+  onDelete(index: number) {
+    this.delete.emit(index);
+  }
+
+  onEdit(data: any, index: number) {
+    this.edit.emit({ data, index });
+  }
 }

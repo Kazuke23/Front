@@ -1,35 +1,32 @@
-<form [formGroup]="form" (ngSubmit)="onSubmit()" class="custom-form">
-  <div *ngFor="let field of fields" class="form-group">
+<form (ngSubmit)="onSubmit()" class="form-container">
+  <div *ngFor="let field of fields" class="form-field">
     <label [for]="field.name">{{ field.label }}</label>
 
-    <!-- Campo tipo texto / email / número -->
+    <!-- 🟢 Campos de texto, número, etc. -->
     <input
       *ngIf="field.type !== 'select'"
-      [type]="field.type"
       [id]="field.name"
-      [formControlName]="field.name"
+      [type]="field.type"
+      [(ngModel)]="formData[field.name]"
+      name="{{ field.name }}"
+      [required]="field.required || false"
       [placeholder]="field.placeholder || ''"
-      [required]="!!field.required"
     />
 
-    <!-- Campo tipo select -->
+    <!-- 🟢 Campos tipo select -->
     <select
       *ngIf="field.type === 'select'"
       [id]="field.name"
-      [formControlName]="field.name"
-      [required]="!!field.required"
-    >
-      <option value="">Seleccione una opción</option>
+      [(ngModel)]="formData[field.name]"
+      name="{{ field.name }}"
+      [required]="field.required || false">
       <option *ngFor="let option of field.options" [value]="option.value">
         {{ option.label }}
       </option>
     </select>
-
-    <!-- Mensaje de error -->
-    <div class="error" *ngIf="form.get(field.name)?.invalid && form.get(field.name)?.touched">
-      Este campo es obligatorio.
-    </div>
   </div>
 
-  <button type="submit" [disabled]="form.invalid">Enviar</button>
+  <button type="submit" class="btn-submit">
+    {{ editingIndex !== null ? 'Actualizar' : 'Agregar' }}
+  </button>
 </form>

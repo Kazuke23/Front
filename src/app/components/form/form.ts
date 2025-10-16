@@ -1,46 +1,46 @@
-import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { FormField } from './form-field.model';
 
 @Component({
   selector: 'app-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './form.html',
   styleUrls: ['./form.css']
 })
-export class FormComponent implements OnChanges {
+export class FormComponent {
   @Input() fields: FormField[] = [];
-  @Output() submitForm = new EventEmitter<any>();
+  @Output() formSubmit = new EventEmitter<{ data: any; index: number | null }>();
 
-  form: FormGroup = new FormGroup({});
-  private fb: FormBuilder; // ✅ declaración segura
+  formData: Record<string, any> = {};
+  editingIndex: number | null = null;
 
-  constructor(formBuilder: FormBuilder) {
-    this.fb = formBuilder; // ✅ inicialización
-  }
+  /** ✅ Enviar datos nuevos o editados */
+  onSubmit(): void {
+    // Evita enviar si el formulario está vacío
+    if (Object.keys(this.formData).length === 0) return;
 
-  ngOnChanges(changes: SimpleChanges): void {
-    if (changes['fields']) {
-      this.createForm();
-    }
-  }
-
-  private createForm() {
-    const group: { [key: string]: any } = {};
-    this.fields.forEach(field => {
-      group[field.name] = field.required ? ['', Validators.required] : [''];
+    // Emitir los datos al componente padre
+    this.formSubmit.emit({
+      data: { ...this.formData },
+      index: this.editingIndex
     });
-    this.form = this.fb.group(group); // ✅ ahora fb ya está inicializado correctamente
+
+    // Reiniciar formulario
+    this.resetForm();
   }
 
-  onSubmit() {
-    if (this.form.valid) {
-      this.submitForm.emit(this.form.value);
-      console.log('Formulario enviado:', this.form.value);
-    } else {
-      this.form.markAllAsTouched();
-    }
+  /** ✅ Cargar datos en el formulario (modo edición) */
+  loadDataForEdit(data: any, index: number): void {
+    this.formData = { ...data };
+    this.editingIndex = index;
+  }
+
+  /** 🔁 Reiniciar el formulario */
+  resetForm(): void {
+    this.formData = {};
+    this.editingIndex = null;
   }
 }
