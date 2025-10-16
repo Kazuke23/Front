@@ -1,0 +1,18 @@
+<div class="table-container" *ngIf="data && data.length; else noData">
+  <table>
+    <thead>
+      <tr>
+        <th *ngFor="let col of columns">{{ col | titlecase }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let item of data">
+        <td *ngFor="let col of columns">{{ item[col] }}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<ng-template #noData>
+  <p class="no-data">No hay datos para mostrar</p>
+</ng-template>

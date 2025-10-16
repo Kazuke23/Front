@@ -1,2 +1,17 @@
 <router-outlet></router-outlet>
 
+<div class="container">
+  <h1 style="text-align:center; margin-top:2rem;">Formulario dinámico</h1>
+
+  <app-form
+    [fields]="formFields"
+    (formSubmit)="onFormSubmit($event)">
+  </app-form>
+
+  <h2 style="text-align:center; margin-top:3rem;">Tabla dinámica</h2>
+
+  <app-table
+    [columns]="columns"
+    [data]="data">
+  </app-table>
+</div>
