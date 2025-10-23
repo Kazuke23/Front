@@ -1,0 +1,59 @@
+<div class="table-container">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th *ngFor="let col of columns">{{ getColumnLabel(col) }}</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      <tr *ngFor="let row of data; let i = index">
+        <td *ngFor="let col of columns">
+          <span [ngSwitch]="col">
+            <!-- Estado activo/inactivo -->
+            <span *ngSwitchCase="'isActive'" 
+                  [class]="row[col] ? 'status-active' : 'status-inactive'">
+              {{ row[col] ? 'Activo' : 'Inactivo' }}
+            </span>
+            
+            <!-- Calificación con estrellas -->
+            <span *ngSwitchCase="'rating'" class="rating">
+              {{ row[col] }} ⭐
+            </span>
+            
+            <!-- Capacidad -->
+            <span *ngSwitchCase="'capacity'" class="capacity">
+              {{ row[col] }} personas
+            </span>
+            
+            <!-- Teléfono -->
+            <span *ngSwitchCase="'phone'" class="phone">
+              {{ row[col] }}
+            </span>
+            
+            <!-- Email -->
+            <span *ngSwitchCase="'email'" class="email">
+              {{ row[col] }}
+            </span>
+            
+            <!-- Texto normal -->
+            <span *ngSwitchDefault>{{ row[col] }}</span>
+          </span>
+        </td>
+        <td class="actions">
+          <button (click)="onEdit(row, i)" class="btn-edit">
+            ✏️ Editar
+          </button>
+          <button (click)="onDelete(i)" class="btn-delete">
+            🗑️ Eliminar
+          </button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p *ngIf="data.length === 0" class="empty-message">
+    No hay registros disponibles.
+  </p>
+</div>

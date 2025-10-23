@@ -1,0 +1,130 @@
+<div class="login-container">
+
+  <!-- Contenido principal -->
+  <div class="login-content">
+    <!-- Logo y título con animación -->
+    <div class="brand-section">
+      <div class="logo-container">
+        <div class="logo-icon">
+          <div class="chef-hat">👨‍🍳</div>
+          <div class="sparkles">
+            <span class="sparkle">✨</span>
+            <span class="sparkle">✨</span>
+            <span class="sparkle">✨</span>
+          </div>
+        </div>
+        <h1 class="brand-title">
+          <span class="title-word" *ngFor="let word of titleWords; let i = index" 
+                [style.animation-delay.ms]="i * 200">
+            {{ word }}
+          </span>
+        </h1>
+        <p class="brand-subtitle">Tu cocina digital te espera</p>
+      </div>
+    </div>
+
+    <!-- Formulario de login -->
+    <div class="login-form-container">
+      <div class="login-card">
+        <div class="form-header">
+          <h2>¡Bienvenido de vuelta!</h2>
+          <p>Inicia sesión para acceder a tu recetario</p>
+        </div>
+
+        <form [formGroup]="formLogin" (ngSubmit)="onSubmit()" class="login-form">
+        <!-- Campo de email -->
+        <div class="input-group" [class.focused]="emailFocused" [class.error]="submitted && email?.invalid">
+          <div class="input-icon">
+            <span class="icon">📧</span>
+          </div>
+          <div class="input-wrapper">
+            <label [class.active]="email?.value || emailFocused">Correo electrónico</label>
+            <input 
+              type="email" 
+              formControlName="email"
+              required 
+              email
+              (focus)="onEmailFocus()"
+              (blur)="onEmailBlur()"
+              placeholder="tu@email.com"
+            >
+            <div class="input-line"></div>
+          </div>
+          <div class="input-status" *ngIf="email?.valid && email?.value">
+            <span class="check-icon">✅</span>
+          </div>
+        </div>
+
+        <!-- Campo de contraseña -->
+        <div class="input-group" [class.focused]="passwordFocused" [class.error]="submitted && password?.invalid">
+          <div class="input-icon">
+            <span class="icon">🔒</span>
+          </div>
+          <div class="input-wrapper">
+            <label [class.active]="password?.value || passwordFocused">Contraseña</label>
+            <input 
+              [type]="showPassword ? 'text' : 'password'" 
+              formControlName="password"
+              required
+              (focus)="onPasswordFocus()"
+              (blur)="onPasswordBlur()"
+              placeholder="Tu contraseña"
+            >
+            <div class="input-line"></div>
+          </div>
+          <div class="password-toggle" (click)="togglePassword()">
+            <span class="toggle-icon">{{ showPassword ? '👁️' : '👁️‍🗨️' }}</span>
+          </div>
+        </div>
+
+        <!-- Botón de login -->
+        <button type="submit" 
+                [disabled]="!formLogin.valid || loading" 
+                class="login-btn"
+                [class.loading]="loading">
+          <span class="btn-text" *ngIf="!loading">Ingresar</span>
+          <span class="btn-text" *ngIf="loading">Ingresando...</span>
+          <div class="btn-loader" *ngIf="loading">
+            <div class="spinner"></div>
+          </div>
+          <div class="btn-shine"></div>
+        </button>
+
+        <!-- Enlaces adicionales -->
+        <div class="form-footer">
+          <a href="#" class="forgot-link">¿Olvidaste tu contraseña?</a>
+          <div class="divider">
+            <span>o</span>
+          </div>
+          <a href="#" class="register-link">Crear nueva cuenta</a>
+        </div>
+      </form>
+
+      <!-- Credenciales demo -->
+      <div class="demo-section">
+        <div class="demo-header">
+          <span class="demo-icon">🎭</span>
+          <h3>Credenciales Demo</h3>
+        </div>
+        <div class="demo-cards">
+          <div class="demo-card" (click)="fillDemoCredentials('admin')">
+            <div class="demo-role">👑 Administrador</div>
+            <div class="demo-email">admin@recetario.com</div>
+            <div class="demo-password">123456</div>
+          </div>
+          <div class="demo-card" (click)="fillDemoCredentials('chef')">
+            <div class="demo-role">👨‍🍳 Chef</div>
+            <div class="demo-email">chef@recetario.com</div>
+            <div class="demo-password">chef123</div>
+          </div>
+        </div>
+      </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Efectos de éxito -->
+  <div class="success-effects" *ngIf="showSuccess">
+    <div class="confetti" *ngFor="let confetti of confettiPieces"></div>
+  </div>
+</div>

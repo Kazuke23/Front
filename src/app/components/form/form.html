@@ -1,0 +1,32 @@
+<form (ngSubmit)="onSubmit()" class="form-container">
+  <div *ngFor="let field of fields" class="form-field">
+    <label [for]="field.name">{{ field.label }}</label>
+
+    <!-- 🟢 Campos de texto, número, etc. -->
+    <input
+      *ngIf="field.type !== 'select'"
+      [id]="field.name"
+      [type]="field.type"
+      [(ngModel)]="formData[field.name]"
+      name="{{ field.name }}"
+      [required]="field.required || false"
+      [placeholder]="field.placeholder || ''"
+    />
+
+    <!-- 🟢 Campos tipo select -->
+    <select
+      *ngIf="field.type === 'select'"
+      [id]="field.name"
+      [(ngModel)]="formData[field.name]"
+      name="{{ field.name }}"
+      [required]="field.required || false">
+      <option *ngFor="let option of field.options" [value]="option.value">
+        {{ option.label }}
+      </option>
+    </select>
+  </div>
+
+  <button type="submit" class="btn-submit">
+    {{ editingIndex !== null ? 'Actualizar' : 'Agregar' }}
+  </button>
+</form>

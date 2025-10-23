@@ -1,0 +1,17 @@
+<div class="users-container">
+  <h2>Gestión de Usuarios</h2>
+
+  <!-- ✅ Formulario reutilizado -->
+  <app-form
+    [fields]="userFields"
+    (submitForm)="onSubmit($event)"
+  ></app-form>
+
+  <hr>
+
+  <!-- ✅ Tabla reutilizada -->
+  <app-table
+    [columns]="userColumns"
+    [data]="users"
+  ></app-table>
+</div>

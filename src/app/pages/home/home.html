@@ -1,0 +1,69 @@
+<div class="page-container">
+  <div class="welcome-section">
+    <h1>🏠 Bienvenido a Recetario</h1>
+    <p class="welcome-subtitle">Tu sistema de gestión culinaria completo</p>
+  </div>
+  
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon">📖</div>
+      <div class="stat-content">
+        <h3>Recetas</h3>
+        <p class="stat-number">24</p>
+        <p class="stat-label">Activas</p>
+      </div>
+    </div>
+    
+    <div class="stat-card">
+      <div class="stat-icon">🗑️</div>
+      <div class="stat-content">
+        <h3>Inventario</h3>
+        <p class="stat-number">156</p>
+        <p class="stat-label">Productos</p>
+      </div>
+    </div>
+    
+    <div class="stat-card">
+      <div class="stat-icon">📅</div>
+      <div class="stat-content">
+        <h3>Planificación</h3>
+        <p class="stat-number">7</p>
+        <p class="stat-label">Menús</p>
+      </div>
+    </div>
+    
+    <div class="stat-card">
+      <div class="stat-icon">👥</div>
+      <div class="stat-content">
+        <h3>Usuarios</h3>
+        <p class="stat-number">12</p>
+        <p class="stat-label">Registrados</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="quick-actions">
+    <h2>Acciones Rápidas</h2>
+    <div class="actions-grid">
+      <button class="action-btn" routerLink="/recetas">
+        <div class="action-icon">📖</div>
+        <div class="action-text">Gestionar Recetas</div>
+      </button>
+      
+      <button class="action-btn" routerLink="/tabla">
+        <div class="action-icon">📊</div>
+        <div class="action-text">Ver Inventario</div>
+      </button>
+      
+      <button class="action-btn" routerLink="/planificacion">
+        <div class="action-icon">📅</div>
+        <div class="action-text">Planificar Menú</div>
+      </button>
+      
+      <button class="action-btn" routerLink="/restaurantes" *ngIf="canAccessRestaurants">
+        <div class="action-icon">🏪</div>
+        <div class="action-text">Gestionar Restaurantes</div>
+      </button>
+    </div>
+  </div>
+</div>
