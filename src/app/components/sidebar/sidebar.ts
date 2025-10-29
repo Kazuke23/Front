@@ -484,6 +484,13 @@ export class SidebarComponent implements OnInit, OnDestroy {
       roles: ['Administrador', 'Chef']
     },
     {
+      id: 'ingredientes',
+      label: 'Ingredientes',
+      icon: '🥬', // puedes cambiarlo por otro emoji si quieres
+      route: '/ingredientes',
+      roles: ['Administrador', 'Chef'] // mismos roles que recetas
+    },
+    {
       id: 'inventario',
       label: 'Inventario',
       icon: '🗑️',

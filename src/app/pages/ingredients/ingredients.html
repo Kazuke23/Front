@@ -1,0 +1,54 @@
+<div class="ingredients-container">
+  <h2>🍅 Gestión de Ingredientes</h2>
+
+  <div class="filters">
+    <input
+      type="text"
+      [(ngModel)]="searchTerm"
+      (input)="filterIngredients()"
+      placeholder="Buscar por nombre..."
+    />
+
+    <select [(ngModel)]="selectedCategory" (change)="filterIngredients()">
+      <option *ngFor="let cat of categories" [value]="cat">{{ cat }}</option>
+    </select>
+
+    <button (click)="toggleForm()" class="create-btn">
+      {{ showForm ? 'Cancelar' : '+ Agregar Ingrediente' }}
+    </button>
+  </div>
+
+  <div *ngIf="showForm" class="ingredient-form">
+    <h3>{{ editingIngredient ? 'Editar Ingrediente' : 'Agregar Nuevo Ingrediente' }}</h3>
+
+    <form (ngSubmit)="saveIngredient()">
+      <input [(ngModel)]="formData.name" name="name" placeholder="Nombre" required />
+      <input [(ngModel)]="formData.unit" name="unit" placeholder="Unidad (kg, g, ml...)" required />
+      <input [(ngModel)]="formData.cost" name="cost" type="number" placeholder="Costo (COP)" required />
+      <input [(ngModel)]="formData.stock" name="stock" type="number" placeholder="Stock disponible" required />
+      <select [(ngModel)]="formData.category" name="category">
+        <option *ngFor="let cat of categories" [value]="cat">{{ cat }}</option>
+      </select>
+      <textarea [(ngModel)]="formData.description" name="description" placeholder="Descripción"></textarea>
+
+      <button type="submit" class="save-btn">💾 Guardar</button>
+    </form>
+  </div>
+
+  <div class="ingredient-list">
+    <div class="ingredient-card" *ngFor="let i of filteredIngredients">
+      <h4>{{ i.name }}</h4>
+      <p><strong>Categoría:</strong> {{ i.category }}</p>
+      <p>
+        <strong>Unidad:</strong> {{ i.unit }} |
+        <strong>Costo:</strong> {{ i.cost | currency:'COP':'symbol' }}
+      </p>
+      <p><strong>Stock:</strong> {{ i.stock }}</p>
+      <p class="desc">{{ i.description }}</p>
+      <div class="actions">
+        <button (click)="editIngredient(i)">✏️ Editar</button>
+        <button (click)="deleteIngredient(i.id)">🗑️ Eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>

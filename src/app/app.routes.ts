@@ -32,6 +32,13 @@ export const routes: Routes = [
     canActivate: [AuthGuard, RoleGuard],
     data: { roles: ['Administrador', 'Chef'] } // Administradores y Chefs
   },
+
+  { 
+    path: 'ingredientes',
+    loadComponent: () => import('./pages/ingredients/ingredients').then(m => m.IngredientsComponent),
+    canActivate: [AuthGuard, RoleGuard],
+    data: { roles: ['Administrador', 'Chef'] } // Administradores y Chefs
+  },
   
   { 
     path: 'formulario', 
