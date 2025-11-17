@@ -106,7 +106,7 @@ interface SidebarItem {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      background: linear-gradient(135deg, #4caf50 0%, #66bb6a 100%);
+      background: linear-gradient(135deg, #E91E63 0%, #F06292 100%);
       color: white;
       position: relative;
       overflow: hidden;
@@ -220,7 +220,7 @@ interface SidebarItem {
       left: 0;
       right: 0;
       bottom: 0;
-      background: linear-gradient(135deg, #ff9800 0%, #ffb74d 100%);
+      background: linear-gradient(135deg, #FF4081 0%, #F06292 100%);
       opacity: 0;
       transition: opacity 0.3s ease;
       z-index: -1;
@@ -231,15 +231,15 @@ interface SidebarItem {
     }
 
     .nav-item:hover {
-      color: #ff9800;
+      color: #FF4081;
       transform: translateX(4px);
-      box-shadow: 0 4px 12px rgba(255,152,0,0.2);
+      box-shadow: 0 4px 12px rgba(255,64,129,0.2);
     }
 
     .nav-item.active {
-      background: linear-gradient(135deg, #4caf50 0%, #66bb6a 100%);
+      background: linear-gradient(135deg, #E91E63 0%, #F06292 100%);
       color: white;
-      box-shadow: 0 4px 16px rgba(76,175,80,0.3);
+      box-shadow: 0 4px 16px rgba(233,30,99,0.3);
     }
 
     .nav-item.active::before {
@@ -267,7 +267,7 @@ interface SidebarItem {
     .nav-indicator {
       width: 4px;
       height: 4px;
-      background: #4caf50;
+      background: #E91E63;
       border-radius: 50%;
       margin-left: auto;
       opacity: 0;
@@ -290,15 +290,15 @@ interface SidebarItem {
       gap: 12px;
       margin-bottom: 16px;
       padding: 12px;
-      background: linear-gradient(135deg, #e8f5e8 0%, #f1f8e9 100%);
+      background: linear-gradient(135deg, #F8BBD0 0%, #F5F5F5 100%);
       border-radius: 12px;
-      border: 1px solid #c8e6c9;
+      border: 1px solid #F8BBD0;
     }
 
     .user-avatar {
       width: 40px;
       height: 40px;
-      background: linear-gradient(135deg, #4caf50 0%, #66bb6a 100%);
+      background: linear-gradient(135deg, #E91E63 0%, #F06292 100%);
       border-radius: 50%;
       display: flex;
       align-items: center;
@@ -315,14 +315,14 @@ interface SidebarItem {
     .user-name {
       font-size: 14px;
       font-weight: 600;
-      color: #333;
+      color: #212121;
       margin-bottom: 2px;
     }
 
     .user-role {
       font-size: 12px;
-      color: #666;
-      background: rgba(76,175,80,0.1);
+      color: #9E9E9E;
+      background: rgba(233,30,99,0.1);
       padding: 2px 8px;
       border-radius: 12px;
       display: inline-block;
@@ -369,7 +369,7 @@ interface SidebarItem {
       transform: translateY(-50%);
       width: 30px;
       height: 30px;
-      background: linear-gradient(135deg, #4caf50 0%, #66bb6a 100%);
+      background: linear-gradient(135deg, #E91E63 0%, #F06292 100%);
       border: none;
       border-radius: 50%;
       color: white;
@@ -377,13 +377,13 @@ interface SidebarItem {
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 2px 8px rgba(76,175,80,0.3);
+      box-shadow: 0 2px 8px rgba(233,30,99,0.3);
       transition: all 0.3s ease;
     }
 
     .expand-btn:hover {
       transform: translateY(-50%) scale(1.1);
-      box-shadow: 0 4px 12px rgba(76,175,80,0.4);
+      box-shadow: 0 4px 12px rgba(233,30,99,0.4);
     }
 
     .expand-icon {
@@ -452,12 +452,12 @@ interface SidebarItem {
     }
 
     .sidebar-nav::-webkit-scrollbar-thumb {
-      background: #c8e6c9;
+      background: #F8BBD0;
       border-radius: 2px;
     }
 
     .sidebar-nav::-webkit-scrollbar-thumb:hover {
-      background: #4caf50;
+      background: #E91E63;
     }
   `]
 })
@@ -495,6 +495,13 @@ export class SidebarComponent implements OnInit, OnDestroy {
       label: 'Planificación',
       icon: '📅',
       route: '/planificacion',
+      roles: ['Administrador', 'Chef']
+    },
+    {
+      id: 'menu',
+      label: 'Menús',
+      icon: '🍽️',
+      route: '/menu',
       roles: ['Administrador', 'Chef']
     },
     {

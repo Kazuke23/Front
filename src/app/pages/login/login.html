@@ -77,6 +77,12 @@
           </div>
         </div>
 
+        <!-- Mensaje de error -->
+        <div class="error-message" *ngIf="errorMessage && !loading">
+          <span class="error-icon">⚠️</span>
+          <span class="error-text">{{ errorMessage }}</span>
+        </div>
+
         <!-- Botón de login -->
         <button type="submit" 
                 [disabled]="!formLogin.valid || loading" 

@@ -52,7 +52,7 @@ import { AuthService, User } from '../../services/auth.service';
   `,
   styles: [`
     .navbar {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #AD1457 0%, #E91E63 100%);
       color: white;
       padding: 1rem 0;
       box-shadow: 0 2px 10px rgba(0,0,0,0.1);

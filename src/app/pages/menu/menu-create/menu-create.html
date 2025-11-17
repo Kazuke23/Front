@@ -1,0 +1,89 @@
+<div class="container-page">
+  <!-- Header -->
+  <div class="form-header">
+    <button class="back-button" (click)="onCancel()">
+      <span class="back-icon">←</span>
+      Volver
+    </button>
+    <h1 class="form-title">🍽️ {{ isEditing ? 'Editar Menú' : 'Crear Nuevo Menú' }}</h1>
+    <p class="form-subtitle">{{ isEditing ? 'Modifica la información del menú' : 'Completa el formulario para crear un nuevo menú' }}</p>
+  </div>
+
+  <!-- Formulario -->
+  <div class="form-container">
+    <form class="form" (ngSubmit)="onSubmit()">
+      <div class="form-group">
+        <label class="form-label">
+          <span class="label-icon">🏪</span>
+          Restaurante
+        </label>
+        <select [(ngModel)]="formData.restaurante" name="restaurante" class="form-select" required>
+          <option value="">Selecciona un restaurante</option>
+          <option *ngFor="let restaurante of restaurantes" [value]="restaurante.id">
+            {{ restaurante.name }} - {{ restaurante.cuisine }}
+          </option>
+        </select>
+        <p *ngIf="restaurantes.length === 0" class="no-restaurants-message">
+          ⚠️ No hay restaurantes disponibles. Por favor crea un restaurante primero en la sección "Restaurantes".
+        </p>
+        <p *ngIf="restaurantes.length > 0" class="restaurants-count">
+          {{ restaurantes.length }} restaurante(s) disponible(s)
+        </p>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">
+          <span class="label-icon">📝</span>
+          Nombre del Menú
+        </label>
+        <input 
+          type="text" 
+          [(ngModel)]="formData.nombre" 
+          name="nombre" 
+          class="form-input" 
+          placeholder="Ej: Menú del Día, Menú Ejecutivo, Menú Especial..."
+          required
+        >
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">
+            <span class="label-icon">📅</span>
+            Fecha de Inicio
+          </label>
+          <input 
+            type="date" 
+            [(ngModel)]="formData.fechaInicio" 
+            name="fechaInicio" 
+            class="form-input" 
+            required
+          >
+        </div>
+        <div class="form-group">
+          <label class="form-label">
+            <span class="label-icon">📅</span>
+            Fecha de Fin
+          </label>
+          <input 
+            type="date" 
+            [(ngModel)]="formData.fechaFin" 
+            name="fechaFin" 
+            class="form-input" 
+            required
+          >
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" (click)="onCancel()" class="btn-cancel">
+          Cancelar
+        </button>
+        <button type="submit" class="btn-save">
+          <span class="save-icon">✓</span>
+          {{ isEditing ? 'Actualizar Menú' : 'Guardar Menú' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
