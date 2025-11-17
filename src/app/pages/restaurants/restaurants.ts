@@ -1,9 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Subscription } from 'rxjs';
 import { FormComponent } from '../../components/form/form';
 import { TableComponent } from '../../components/table/table';
 import { FormField, FormOption } from '../../components/form/form-field.model';
 import { Restaurant, RestaurantFormData, CUISINE_TYPES, SAMPLE_RESTAURANTS } from '../../models/restaurant.model';
+import { RestaurantService } from '../../services/restaurant.service';
 
 @Component({
   selector: 'app-restaurants',
@@ -306,10 +308,13 @@ import { Restaurant, RestaurantFormData, CUISINE_TYPES, SAMPLE_RESTAURANTS } fro
     }
   `]
 })
-export class RestaurantsComponent implements OnInit {
-  restaurants: Restaurant[] = [...SAMPLE_RESTAURANTS];
+export class RestaurantsComponent implements OnInit, OnDestroy {
+  restaurants: Restaurant[] = [];
   isEditing = false;
   editingIndex: number | null = null;
+  private subscription?: Subscription;
+
+  constructor(private restaurantService: RestaurantService) {}
 
   // Configuración del formulario
   formFields: FormField[] = [
@@ -403,11 +408,17 @@ export class RestaurantsComponent implements OnInit {
   ];
 
   ngOnInit(): void {
-    // Convertir booleanos a strings para el formulario
-    this.restaurants = this.restaurants.map(restaurant => ({
-      ...restaurant,
-      isActive: restaurant.isActive.toString() as any
-    }));
+    // Cargar restaurantes desde el servicio
+    this.restaurants = this.restaurantService.getRestaurants();
+    
+    // Suscribirse a cambios
+    this.subscription = this.restaurantService.restaurants$.subscribe(restaurants => {
+      this.restaurants = restaurants;
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.subscription?.unsubscribe();
   }
 
   onFormSubmit(event: { data: any; index: number | null }): void {
@@ -418,11 +429,8 @@ export class RestaurantsComponent implements OnInit {
     
     if (index !== null) {
       // Editar restaurante existente
-      this.restaurants[index] = {
-        ...data,
-        id: this.restaurants[index].id,
-        updatedAt: new Date()
-      };
+      const restaurant = this.restaurants[index];
+      this.restaurantService.updateRestaurant(restaurant.id, data);
       this.isEditing = false;
       this.editingIndex = null;
     } else {
@@ -433,7 +441,7 @@ export class RestaurantsComponent implements OnInit {
         createdAt: new Date(),
         updatedAt: new Date()
       };
-      this.restaurants.unshift(newRestaurant);
+      this.restaurantService.addRestaurant(newRestaurant);
     }
   }
 
@@ -458,7 +466,8 @@ export class RestaurantsComponent implements OnInit {
 
   onDelete(index: number): void {
     if (confirm('¿Estás seguro de que quieres eliminar este restaurante?')) {
-      this.restaurants.splice(index, 1);
+      const restaurant = this.restaurants[index];
+      this.restaurantService.deleteRestaurant(restaurant.id);
     }
   }
 

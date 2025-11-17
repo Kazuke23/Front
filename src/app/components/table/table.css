@@ -24,7 +24,7 @@
 }
 
 .data-table th {
-  background: linear-gradient(135deg, #4caf50 0%, #66bb6a 100%);
+  background: linear-gradient(135deg, #E91E63 0%, #F06292 100%);
   color: white;
   font-weight: 600;
   font-size: 13px;
@@ -91,7 +91,7 @@
 
 /* Estilos para diferentes tipos de datos */
 .status-active {
-  background: #4caf50;
+  background: #E91E63;
   color: white;
   padding: 4px 8px;
   border-radius: 12px;
@@ -113,7 +113,7 @@
 }
 
 .rating {
-  color: #ff9800;
+  color: #FF4081;
   font-weight: 600;
   font-size: 15px;
 }
@@ -124,7 +124,7 @@
 }
 
 .phone {
-  color: #4caf50;
+  color: #E91E63;
   font-family: monospace;
   font-size: 13px;
 }

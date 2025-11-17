@@ -2,6 +2,8 @@ import { Routes } from '@angular/router';
 import { AuthGuard } from './guards/auth.guard';
 import { RoleGuard } from './guards/role.guard';
 import { GuestGuard } from './guards/guest.guard';
+import { MenuCreate } from './pages/menu/menu-create/menu-create';
+import { MenuListComponent } from './pages/menu/menu-list/menu-list';
 
 export const routes: Routes = [
   // Rutas públicas (solo para usuarios no autenticados)
@@ -66,6 +68,14 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/restaurants/restaurants').then(m => m.RestaurantsComponent),
     canActivate: [AuthGuard, RoleGuard],
     data: { roles: ['Administrador'] } // Solo administradores
+  },
+  {
+    path: 'menu',
+    children: [
+      { path: '', component: MenuListComponent },
+      { path: 'create', component: MenuCreate },
+      { path: 'edit/:id', component: MenuCreate }
+    ]
   },
   
   // Página de acceso denegado

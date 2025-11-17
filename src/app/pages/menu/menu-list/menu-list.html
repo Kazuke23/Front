@@ -1,0 +1,152 @@
+<div class="container-page">
+  <!-- Header con imagen -->
+  <div class="menu-header">
+    <div class="header-image">
+      <img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1200&h=400&fit=crop" alt="Menús del Restaurante">
+      <div class="header-overlay">
+        <h1 class="page-title">🍽️ Gestión de Menús</h1>
+        <p class="page-subtitle">Administra y crea menús para tus restaurantes</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contenido principal -->
+  <div class="menu-content">
+    <!-- Barra de acciones -->
+    <div class="actions-bar">
+      <div class="search-container">
+        <span class="search-icon">🔍</span>
+        <input 
+          type="text" 
+          [(ngModel)]="searchTerm" 
+          (input)="onSearch($event)" 
+          class="search-input" 
+          placeholder="Buscar menús por nombre..."
+        >
+      </div>
+      <a routerLink="/menu/create" class="btn-new-menu">
+        <span class="plus-icon">+</span>
+        Nuevo Menú
+      </a>
+    </div>
+
+    <!-- Tabla de menús (solo para Administradores) -->
+    <div class="table-container" *ngIf="filteredMenuItems.length > 0 && isAdmin">
+      <table class="menus-table">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Restaurante</th>
+            <th>Fecha de Inicio</th>
+            <th>Fecha de Fin</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of filteredMenuItems">
+            <td class="menu-name">{{ item.nombre }}</td>
+            <td class="menu-restaurant">
+              <span *ngIf="item.restauranteNombre">🏪 {{ item.restauranteNombre }}</span>
+              <span *ngIf="!item.restauranteNombre" class="no-data">-</span>
+            </td>
+            <td class="menu-date">{{ formatDate(item.fechaInicio) }}</td>
+            <td class="menu-date">{{ formatDate(item.fechaFin) }}</td>
+            <td class="menu-actions">
+              <button type="button" class="btn-view" (click)="viewMenu(item)" title="Ver detalles">👁️</button>
+              <button type="button" class="btn-edit" (click)="editMenu(item)" title="Editar">✏️</button>
+              <button type="button" class="btn-delete" (click)="deleteMenu(item)" title="Eliminar">🗑️</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Grid de menús con cards (para Chefs) -->
+    <div class="menus-grid" *ngIf="filteredMenuItems.length > 0 && !isAdmin">
+      <div class="menu-card" *ngFor="let item of filteredMenuItems">
+        <div class="menu-card-content">
+          <h3 class="menu-card-title">{{ item.nombre }}</h3>
+          <p class="menu-restaurant" *ngIf="item.restauranteNombre">🏪 {{ item.restauranteNombre }}</p>
+          <div class="menu-card-dates">
+            <div class="date-item">
+              <span class="date-icon">📅</span>
+              <div class="date-info">
+                <span class="date-label">Inicio</span>
+                <span class="date-value">{{ formatDate(item.fechaInicio) }}</span>
+              </div>
+            </div>
+            <div class="date-item">
+              <span class="date-icon">📅</span>
+              <div class="date-info">
+                <span class="date-label">Fin</span>
+                <span class="date-value">{{ formatDate(item.fechaFin) }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="menu-card-actions">
+            <button type="button" class="btn-view" (click)="viewMenu(item)">👁️ Ver</button>
+            <button type="button" class="btn-edit" (click)="editMenu(item)">✏️ Editar</button>
+            <button type="button" class="btn-delete" (click)="deleteMenu(item)">🗑️ Eliminar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mensaje cuando no hay menús -->
+    <div class="empty-state" *ngIf="filteredMenuItems.length === 0">
+      <div class="empty-icon">🍽️</div>
+      <h3>{{ searchTerm ? 'No se encontraron menús' : 'No hay menús creados' }}</h3>
+      <p>{{ searchTerm ? 'Intenta con otro término de búsqueda' : 'Crea tu primer menú haciendo clic en "Nuevo Menú"' }}</p>
+      <a routerLink="/menu/create" class="btn-new-menu" *ngIf="!searchTerm">
+        <span class="plus-icon">+</span>
+        Crear Primer Menú
+      </a>
+    </div>
+
+    <!-- Indicador de más elementos -->
+    <div class="more-indicator" *ngIf="filteredMenuItems.length > 0 && filteredMenuItems.length >= 6">
+      <span class="dots">...</span>
+    </div>
+  </div>
+
+  <!-- Modal para ver detalles del menú -->
+  <div class="modal-overlay" *ngIf="selectedMenu" (click)="closeView()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>📋 Detalles del Menú</h2>
+        <button class="close-btn" (click)="closeView()">×</button>
+      </div>
+      <div class="modal-body" *ngIf="selectedMenu">
+          <div class="detail-section">
+          <h3>{{ selectedMenu.nombre }}</h3>
+          <p class="detail-restaurant" *ngIf="selectedMenu.restauranteNombre">
+            <span class="detail-label">🏪 Restaurante:</span>
+            {{ selectedMenu.restauranteNombre }}
+          </p>
+        </div>
+        <div class="detail-section">
+          <div class="detail-dates">
+            <div class="detail-date-item">
+              <span class="detail-label">📅 Fecha de Inicio:</span>
+              <span class="detail-value">{{ formatDate(selectedMenu.fechaInicio) }}</span>
+            </div>
+            <div class="detail-date-item">
+              <span class="detail-label">📅 Fecha de Fin:</span>
+              <span class="detail-value">{{ formatDate(selectedMenu.fechaFin) }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-meta">
+            <p><span class="detail-label">Creado:</span> {{ formatDate(selectedMenu.createdAt) }}</p>
+            <p *ngIf="selectedMenu.updatedAt"><span class="detail-label">Actualizado:</span> {{ formatDate(selectedMenu.updatedAt) }}</p>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-edit" (click)="editMenu(selectedMenu); closeView()">✏️ Editar</button>
+          <button type="button" class="btn-delete" (click)="deleteMenu(selectedMenu); closeView()">🗑️ Eliminar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

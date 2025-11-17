@@ -162,34 +162,24 @@ export class Login implements OnInit, OnDestroy {
 
       if (success) {
         this.showSuccessEffects();
-        const user = this.authService.getCurrentUser();
-        const welcomeMessage = this.getWelcomeMessage(user?.rol);
-        
+        // Navegar inmediatamente sin mostrar alert
         setTimeout(() => {
-          alert(welcomeMessage);
           this.router.navigate([this.returnUrl]);
-        }, 1500);
+        }, 500);
       } else {
         this.errorMessage = 'Correo o contraseña incorrectos. Intenta nuevamente.';
+        this.loading = false;
+        this.cdr.detectChanges();
       }
     } catch (error) {
       this.errorMessage = 'Error al iniciar sesión. Intenta nuevamente.';
-    } finally {
       this.loading = false;
       this.cdr.detectChanges();
-    }
-  }
-
-  private getWelcomeMessage(rol?: string): string {
-    switch (rol) {
-      case 'Administrador':
-        return '✅ Bienvenido Administrador al sistema Recetario';
-      case 'Chef':
-        return '👨‍🍳 Bienvenido Chef al Recetario';
-      case 'Usuario':
-        return '👤 Bienvenido Usuario al Recetario';
-      default:
-        return '✅ Bienvenido al sistema Recetario';
+    } finally {
+      if (this.loading) {
+        this.loading = false;
+      }
+      this.cdr.detectChanges();
     }
   }
 }
