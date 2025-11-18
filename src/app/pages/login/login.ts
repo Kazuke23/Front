@@ -52,8 +52,8 @@ export class Login implements OnInit, OnDestroy {
       password: ['', [Validators.required, Validators.minLength(6)]],
     });
 
-    // Obtener URL de retorno si existe
-    this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/';
+    // Obtener URL de retorno si existe, por defecto redirigir a recetas
+    this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/recetas';
   }
 
   ngOnInit(): void {

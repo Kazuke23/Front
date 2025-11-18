@@ -70,6 +70,16 @@ export const routes: Routes = [
     data: { roles: ['Administrador'] } // Solo administradores
   },
   {
+    path: 'proveedores',
+    children: [
+      { path: '', loadComponent: () => import('./pages/proveedores/proveedor-list/proveedor-list').then(m => m.ProveedorListComponent) },
+      { path: 'create', loadComponent: () => import('./pages/proveedores/proveedor-create/proveedor-create').then(m => m.ProveedorCreateComponent) },
+      { path: 'edit/:id', loadComponent: () => import('./pages/proveedores/proveedor-create/proveedor-create').then(m => m.ProveedorCreateComponent) }
+    ],
+    canActivate: [AuthGuard, RoleGuard],
+    data: { roles: ['Administrador'] } // Solo administradores
+  },
+  {
     path: 'menu',
     children: [
       { path: '', component: MenuListComponent },
@@ -84,6 +94,6 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/access-denied/access-denied').then(m => m.AccessDeniedComponent)
   },
   
-  // Ruta por defecto para rutas no encontradas
-  { path: '**', redirectTo: '' }
+  // Ruta por defecto para rutas no encontradas - redirigir a recetas
+  { path: '**', redirectTo: '/recetas' }
 ]; 

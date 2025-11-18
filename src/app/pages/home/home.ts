@@ -20,4 +20,12 @@ export class Home {
   get canAccessRestaurants(): boolean {
     return this.authService.hasRole('Administrador');
   }
+
+  get canAccessProveedores(): boolean {
+    return this.authService.hasRole('Administrador');
+  }
+
+  get canAccessMenus(): boolean {
+    return this.authService.hasRole('Administrador') || this.authService.hasRole('Chef');
+  }
 }

@@ -18,9 +18,9 @@ export class GuestGuard implements CanActivate {
     state: RouterStateSnapshot
   ): Observable<boolean> | Promise<boolean> | boolean {
     
-    // Si ya está autenticado, redirigir al home
+    // Si ya está autenticado, redirigir a recetas
     if (this.authService.isAuthenticated()) {
-      this.router.navigate(['/']);
+      this.router.navigate(['/recetas']);
       return false;
     }
 

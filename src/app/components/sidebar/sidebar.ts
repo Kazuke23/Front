@@ -470,13 +470,6 @@ export class SidebarComponent implements OnInit, OnDestroy {
   // Items del sidebar según roles
   sidebarItems: SidebarItem[] = [
     {
-      id: 'dashboard',
-      label: 'Dashboard',
-      icon: '🏠',
-      route: '/',
-      roles: ['Administrador', 'Chef', 'Usuario']
-    },
-    {
       id: 'recetas',
       label: 'Recetas',
       icon: '📖',
@@ -519,10 +512,10 @@ export class SidebarComponent implements OnInit, OnDestroy {
       roles: ['Administrador']
     },
     {
-      id: 'configuracion',
-      label: 'Configuración',
-      icon: '⚙️',
-      route: '/configuracion',
+      id: 'proveedores',
+      label: 'Proveedores',
+      icon: '🚚',
+      route: '/proveedores',
       roles: ['Administrador']
     }
   ];

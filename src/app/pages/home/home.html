@@ -40,6 +40,24 @@
         <p class="stat-label">Registrados</p>
       </div>
     </div>
+    
+    <a class="stat-card" routerLink="/menu" *ngIf="canAccessMenus">
+      <div class="stat-icon">🍽️</div>
+      <div class="stat-content">
+        <h3>Menús</h3>
+        <p class="stat-number">7</p>
+        <p class="stat-label">Activos</p>
+      </div>
+    </a>
+    
+    <a class="stat-card" routerLink="/proveedores" *ngIf="canAccessProveedores">
+      <div class="stat-icon">🚚</div>
+      <div class="stat-content">
+        <h3>Proveedores</h3>
+        <p class="stat-number">15</p>
+        <p class="stat-label">Registrados</p>
+      </div>
+    </a>
   </div>
   
   <div class="quick-actions">
@@ -63,6 +81,16 @@
       <button class="action-btn" routerLink="/restaurantes" *ngIf="canAccessRestaurants">
         <div class="action-icon">🏪</div>
         <div class="action-text">Gestionar Restaurantes</div>
+      </button>
+      
+      <button class="action-btn" routerLink="/menu" *ngIf="canAccessMenus">
+        <div class="action-icon">🍽️</div>
+        <div class="action-text">Gestionar Menús</div>
+      </button>
+      
+      <button class="action-btn" routerLink="/proveedores" *ngIf="canAccessProveedores">
+        <div class="action-icon">🚚</div>
+        <div class="action-text">Gestionar Proveedores</div>
       </button>
     </div>
   </div>

@@ -1,0 +1,137 @@
+<div class="container-page">
+  <!-- Header con imagen -->
+  <div class="proveedor-header">
+    <div class="header-image">
+      <img src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=1200&h=400&fit=crop" alt="Proveedores">
+      <div class="header-overlay">
+        <h1 class="page-title">🚚 Gestión de Proveedores</h1>
+        <p class="page-subtitle">Administra y gestiona todos tus proveedores</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contenido principal -->
+  <div class="proveedor-content">
+    <!-- Barra de acciones -->
+    <div class="actions-bar">
+      <div class="search-container">
+        <span class="search-icon">🔍</span>
+        <input 
+          type="text" 
+          [(ngModel)]="searchTerm" 
+          (input)="onSearch($event)" 
+          class="search-input" 
+          placeholder="Buscar proveedores por nombre, contacto, email o tipo..."
+        >
+      </div>
+      <a routerLink="/proveedores/create" class="btn-new-proveedor">
+        <span class="plus-icon">+</span>
+        Nuevo Proveedor
+      </a>
+    </div>
+
+    <!-- Tabla de proveedores -->
+    <div class="table-container" *ngIf="filteredProveedores.length > 0">
+      <table class="proveedores-table">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Contacto</th>
+            <th>Teléfono</th>
+            <th>Email</th>
+            <th>Tipo de Producto</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let proveedor of filteredProveedores">
+            <td class="proveedor-name">{{ proveedor.nombre }}</td>
+            <td class="proveedor-contacto">{{ proveedor.contacto }}</td>
+            <td class="proveedor-telefono">{{ proveedor.telefono }}</td>
+            <td class="proveedor-email">{{ proveedor.email }}</td>
+            <td class="proveedor-tipo">{{ proveedor.tipoProducto }}</td>
+            <td class="proveedor-estado">
+              <span class="status-badge" [class.active]="proveedor.activo" [class.inactive]="!proveedor.activo">
+                {{ proveedor.activo ? 'Activo' : 'Inactivo' }}
+              </span>
+            </td>
+            <td class="proveedor-actions">
+              <button type="button" class="btn-view" (click)="viewProveedor(proveedor)" title="Ver detalles">👁️</button>
+              <button type="button" class="btn-edit" (click)="editProveedor(proveedor)" title="Editar">✏️</button>
+              <button type="button" class="btn-delete" (click)="deleteProveedor(proveedor)" title="Eliminar">🗑️</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Mensaje cuando no hay proveedores -->
+    <div class="empty-state" *ngIf="filteredProveedores.length === 0">
+      <div class="empty-icon">🚚</div>
+      <h3>{{ searchTerm ? 'No se encontraron proveedores' : 'No hay proveedores registrados' }}</h3>
+      <p>{{ searchTerm ? 'Intenta con otro término de búsqueda' : 'Crea tu primer proveedor haciendo clic en "Nuevo Proveedor"' }}</p>
+      <a routerLink="/proveedores/create" class="btn-new-proveedor" *ngIf="!searchTerm">
+        <span class="plus-icon">+</span>
+        Crear Primer Proveedor
+      </a>
+    </div>
+  </div>
+
+  <!-- Modal para ver detalles del proveedor -->
+  <div class="modal-overlay" *ngIf="selectedProveedor" (click)="closeView()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>📋 Detalles del Proveedor</h2>
+        <button class="close-btn" (click)="closeView()">×</button>
+      </div>
+      <div class="modal-body" *ngIf="selectedProveedor">
+        <div class="detail-section">
+          <h3>{{ selectedProveedor.nombre }}</h3>
+          <p class="detail-status">
+            <span class="status-badge" [class.active]="selectedProveedor.activo" [class.inactive]="!selectedProveedor.activo">
+              {{ selectedProveedor.activo ? 'Activo' : 'Inactivo' }}
+            </span>
+          </p>
+        </div>
+        <div class="detail-section">
+          <div class="detail-item">
+            <span class="detail-label">👤 Contacto:</span>
+            <span class="detail-value">{{ selectedProveedor.contacto }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">📧 Email:</span>
+            <span class="detail-value">{{ selectedProveedor.email }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">📞 Teléfono:</span>
+            <span class="detail-value">{{ selectedProveedor.telefono }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">📍 Dirección:</span>
+            <span class="detail-value">{{ selectedProveedor.direccion }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">📦 Tipo de Producto:</span>
+            <span class="detail-value">{{ selectedProveedor.tipoProducto }}</span>
+          </div>
+          <div class="detail-item" *ngIf="selectedProveedor.notas">
+            <span class="detail-label">📝 Notas:</span>
+            <span class="detail-value">{{ selectedProveedor.notas }}</span>
+          </div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-meta">
+            <p><span class="detail-label">Creado:</span> {{ formatDate(selectedProveedor.createdAt) }}</p>
+            <p *ngIf="selectedProveedor.updatedAt"><span class="detail-label">Actualizado:</span> {{ formatDate(selectedProveedor.updatedAt) }}</p>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-edit" (click)="editProveedor(selectedProveedor); closeView()">✏️ Editar</button>
+          <button type="button" class="btn-delete" (click)="deleteProveedor(selectedProveedor); closeView()">🗑️ Eliminar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
