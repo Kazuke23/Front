@@ -26,9 +26,9 @@ import { AuthService, User } from '../../services/auth.service';
               📝 Formulario
             </a>
             
-            <a routerLink="/tabla" routerLinkActive="active"
-               *ngIf="canAccessTabla">
-              📊 Tabla
+            <a routerLink="/inventario/admin" routerLinkActive="active"
+               *ngIf="canAccessInventario">
+              📦 Inventario
             </a>
             
             <a routerLink="/users" routerLinkActive="active"
@@ -193,8 +193,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
     return this.authService.hasAnyRole(['Administrador', 'Chef']);
   }
 
-  get canAccessTabla(): boolean {
-    return this.authService.hasAnyRole(['Administrador', 'Chef']);
+  get canAccessInventario(): boolean {
+    return this.authService.hasRole('Administrador');
   }
 
   get canAccessUsers(): boolean {

@@ -486,9 +486,9 @@ export class SidebarComponent implements OnInit, OnDestroy {
     {
       id: 'inventario',
       label: 'Inventario',
-      icon: '🗑️',
-      route: '/tabla',
-      roles: ['Administrador', 'Chef']
+      icon: '📦',
+      route: '/inventario/admin',
+      roles: ['Administrador']
     },
     {
       id: 'planificacion',

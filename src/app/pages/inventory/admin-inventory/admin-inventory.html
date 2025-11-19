@@ -1,0 +1,205 @@
+<div class="inventory-admin-page">
+  <section class="hero-card">
+    <div class="hero-content">
+      <p class="eyebrow">Panel exclusivo para Administradores</p>
+      <h1>Gestión estratégica de inventario</h1>
+      <p class="subtitle">
+        Supervisa existencias, identifica alertas en tiempo real y mantén el flujo perfecto entre cocina y proveedores.
+      </p>
+      <div class="hero-actions">
+        <button class="primary" (click)="goToCreate()">
+          <span>+ Crear Inventario</span>
+          <small>Nuevo registro inmediato</small>
+        </button>
+        <button class="ghost" (click)="refreshData()">
+          <span>Actualizar datos</span>
+        </button>
+      </div>
+    </div>
+    <div class="hero-image">
+      <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1200&q=80" alt="Inventario gourmet" />
+      <div class="image-overlay">
+        <div class="overlay-card">
+          <p>Ítems críticos</p>
+          <strong>{{ stats.critical }}</strong>
+          <span>Prioriza resurtidos</span>
+        </div>
+        <div class="overlay-card">
+          <p>Stock total</p>
+          <strong>{{ stats.totalUnits | number:'1.0-0' }}</strong>
+          <span>Unidades disponibles</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="stats-grid">
+    <article class="stat-card" *ngFor="let card of statCards">
+      <div class="stat-icon">{{ card.icon }}</div>
+      <div>
+        <p>{{ card.label }}</p>
+        <strong>{{ card.value }}</strong>
+        <span [class.positive]="card.trend > 0" [class.negative]="card.trend < 0">
+          {{ card.trend > 0 ? '+' : ''}}{{ card.trend }}%
+        </span>
+      </div>
+    </article>
+  </section>
+
+  <section class="inventory-layout">
+    <div class="inventory-panel">
+      <header class="panel-header">
+        <div class="search-group">
+          <input
+            type="text"
+            placeholder="Buscar artículo, proveedor o categoría..."
+            [(ngModel)]="searchTerm"
+            (ngModelChange)="onFiltersChange()"
+          />
+          <span class="search-icon">🔍</span>
+        </div>
+        <div class="filters">
+          <select [(ngModel)]="categoryFilter" (change)="onFiltersChange()">
+            <option value="all">Todas las categorías</option>
+            <option *ngFor="let category of categories" [value]="category">{{ category }}</option>
+          </select>
+          <select [(ngModel)]="statusFilter" (change)="onFiltersChange()">
+            <option value="all">Todos los estados</option>
+            <option value="Disponible">Disponible</option>
+            <option value="Crítico">Crítico</option>
+            <option value="Agotado">Agotado</option>
+          </select>
+          <button class="primary ghosty" (click)="goToCreate()">+ Crear Inventario</button>
+        </div>
+      </header>
+
+      <div class="table-wrapper" *ngIf="filteredItems.length; else emptyState">
+        <table>
+          <thead>
+            <tr>
+              <th>Artículo</th>
+              <th>Existencia</th>
+              <th>Categoría</th>
+              <th>Proveedor</th>
+              <th>Última actualización</th>
+              <th>Estado</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              *ngFor="let item of filteredItems; trackBy: trackById"
+              (click)="selectItem(item)"
+              [class.selected]="selectedItem?.id === item.id"
+            >
+              <td>
+                <div class="item-info">
+                  <div class="avatar">
+                    {{ item.nombre.charAt(0) }}
+                  </div>
+                  <div>
+                    <strong>{{ item.nombre }}</strong>
+                    <p>{{ item.descripcion || 'Sin descripción' }}</p>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <div class="quantity">
+                  <strong>{{ item.cantidad }}</strong>
+                  <span>{{ item.unidad }}</span>
+                  <div class="progress-bar">
+                    <div class="progress" [style.width.%]="getStockProgress(item)"></div>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="badge" [ngClass]="getCategoryBadge(item.categoria)">
+                  {{ item.categoria }}
+                </span>
+              </td>
+              <td>{{ item.proveedor }}</td>
+              <td>{{ formatDate(item.fechaActualizacion) }}</td>
+              <td>
+                <span class="status-chip" [ngClass]="item.estado.toLowerCase()">
+                  {{ item.estado }}
+                </span>
+              </td>
+              <td class="actions">
+                <button class="ghost" (click)="editItem(item, $event)">Editar</button>
+                <button class="danger ghost" (click)="deleteItem(item, $event)">Eliminar</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ng-template #emptyState>
+        <div class="empty-state">
+          <h3>Sin resultados</h3>
+          <p>Prueba con otro término o crea un nuevo registro.</p>
+          <button class="primary" (click)="goToCreate()">Crear nuevo artículo</button>
+        </div>
+      </ng-template>
+    </div>
+
+    <aside class="insights-panel">
+      <div class="detail-card" *ngIf="selectedItem as item; else placeholderCard">
+        <div class="detail-cover">
+          <img [src]="item.imagen || defaultImage" [alt]="item.nombre" />
+          <span class="status-pill" [ngClass]="item.estado.toLowerCase()">{{ item.estado }}</span>
+        </div>
+        <div class="detail-body">
+          <p class="eyebrow">Detalle inteligente</p>
+          <h2>{{ item.nombre }}</h2>
+          <p class="description">{{ item.descripcion }}</p>
+          <div class="detail-grid">
+            <div>
+              <label>Stock actual</label>
+              <strong>{{ item.cantidad }} {{ item.unidad }}</strong>
+            </div>
+            <div>
+              <label>Reorden</label>
+              <strong>{{ item.nivelReorden }} {{ item.unidad }}</strong>
+            </div>
+            <div>
+              <label>Proveedor</label>
+              <strong>{{ item.proveedor }}</strong>
+            </div>
+            <div>
+              <label>Caducidad</label>
+              <strong>{{ item.fechaExpiracion ? formatDate(item.fechaExpiracion) : 'Sin fecha' }}</strong>
+            </div>
+          </div>
+          <div class="notes" *ngIf="item.notas">
+            <label>Notas operativas</label>
+            <p>{{ item.notas }}</p>
+          </div>
+          <div class="detail-actions">
+            <button class="ghost" (click)="goToEdit(item.id)">Actualizar</button>
+            <button class="primary" (click)="goToCreate()">Crear nuevo</button>
+          </div>
+        </div>
+      </div>
+      <ng-template #placeholderCard>
+        <div class="detail-card placeholder">
+          <h3>Selecciona un artículo</h3>
+          <p>Verás métricas precisas y recomendaciones inteligentes.</p>
+        </div>
+      </ng-template>
+
+      <div class="timeline-card">
+        <p class="eyebrow">Movimiento reciente</p>
+        <h3>Últimas actualizaciones</h3>
+        <ul>
+          <li *ngFor="let item of recentItems">
+            <div>
+              <strong>{{ item.nombre }}</strong>
+              <p>{{ item.proveedor }}</p>
+            </div>
+            <span>{{ formatDate(item.fechaActualizacion) }}</span>
+          </li>
+        </ul>
+      </div>
+    </aside>
+  </section>
+</div>
+

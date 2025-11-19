@@ -41,6 +41,25 @@ export const routes: Routes = [
     canActivate: [AuthGuard, RoleGuard],
     data: { roles: ['Administrador', 'Chef'] } // Administradores y Chefs
   },
+  {
+    path: 'inventario/admin',
+    loadComponent: () => import('./pages/inventory/admin-inventory/admin-inventory').then(m => m.AdminInventoryComponent),
+    canActivate: [AuthGuard, RoleGuard],
+    data: { roles: ['Administrador'] }
+  },
+  { path: 'inventario', redirectTo: 'inventario/admin', pathMatch: 'full' },
+  {
+    path: 'inventario/admin/create',
+    loadComponent: () => import('./pages/inventory/inventory-form/inventory-form').then(m => m.InventoryFormComponent),
+    canActivate: [AuthGuard, RoleGuard],
+    data: { roles: ['Administrador'] }
+  },
+  {
+    path: 'inventario/admin/edit/:id',
+    loadComponent: () => import('./pages/inventory/inventory-form/inventory-form').then(m => m.InventoryFormComponent),
+    canActivate: [AuthGuard, RoleGuard],
+    data: { roles: ['Administrador'] }
+  },
   
   { 
     path: 'formulario', 
@@ -49,11 +68,10 @@ export const routes: Routes = [
     data: { roles: ['Administrador', 'Chef'] } // Administradores y Chefs
   },
   
-  { 
-    path: 'tabla', 
-    loadComponent: () => import('./pages/tabla/tabla').then(m => m.TablaPage),
-    canActivate: [AuthGuard, RoleGuard],
-    data: { roles: ['Administrador', 'Chef'] } // Administradores y Chefs
+  {
+    path: 'tabla',
+    redirectTo: 'inventario/admin',
+    pathMatch: 'full'
   },
   
   { 
