@@ -61,18 +61,37 @@ export class InventoryFormComponent implements OnInit {
   }
 
   private loadItem(id: string): void {
-    const item = this.inventoryService.getById(id);
-    if (!item) {
-      alert('No se encontró el ítem solicitado.');
-      this.router.navigate(['/inventario/admin']);
-      return;
-    }
-    this.currentItem = item;
-    this.form.patchValue({
-      restaurant_id: item.restaurant_id,
-      ingredient_id: item.ingredient_id,
-      unit_id: item.unit_id,
-      quantity: item.quantity
+    this.inventoryService.getById(id).subscribe({
+      next: (item) => {
+        if (!item) {
+          alert('No se encontró el ítem solicitado.');
+          this.router.navigate(['/inventario/admin']);
+          return;
+        }
+        this.currentItem = item;
+        this.form.patchValue({
+          restaurant_id: item.restaurant_id,
+          ingredient_id: item.ingredient_id,
+          unit_id: item.unit_id,
+          quantity: item.quantity
+        });
+      },
+      error: () => {
+        // Si falla, intentar con datos locales
+        const localItem = this.inventoryService.getByIdSync(id);
+        if (!localItem) {
+          alert('No se encontró el ítem solicitado.');
+          this.router.navigate(['/inventario/admin']);
+          return;
+        }
+        this.currentItem = localItem;
+        this.form.patchValue({
+          restaurant_id: localItem.restaurant_id,
+          ingredient_id: localItem.ingredient_id,
+          unit_id: localItem.unit_id,
+          quantity: localItem.quantity
+        });
+      }
     });
   }
 

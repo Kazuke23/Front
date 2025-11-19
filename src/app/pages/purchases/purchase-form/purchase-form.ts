@@ -117,34 +117,69 @@ export class PurchaseFormComponent implements OnInit, OnDestroy {
   }
 
   private loadOrder(id: string): void {
-    const order = this.purchaseService.getById(id);
-    if (!order) {
-      alert('No se encontró la orden solicitada.');
-      this.router.navigate(['/compras']);
-      return;
-    }
-    this.currentOrder = order;
-    this.form.patchValue({
-      restaurant_id: order.restaurant_id,
-      supplier_id: order.supplier_id,
-      status: order.status
-    });
+    this.purchaseService.getById(id).subscribe({
+      next: (order) => {
+        if (!order) {
+          alert('No se encontró la orden solicitada.');
+          this.router.navigate(['/compras']);
+          return;
+        }
+        this.currentOrder = order;
+        this.form.patchValue({
+          restaurant_id: order.restaurant_id,
+          supplier_id: order.supplier_id,
+          status: order.status
+        });
 
-    this.itemsFormArray.clear();
-    order.items.forEach(item => {
-      const itemForm = this.fb.group({
-        ingredient_id: [item.ingredient_id, Validators.required],
-        quantity: [item.quantity, [Validators.required, Validators.min(0.01)]],
-        unit_id: [item.unit_id, Validators.required],
-        price: [item.price, [Validators.required, Validators.min(0)]]
-      });
+        this.itemsFormArray.clear();
+        order.items.forEach((item: any) => {
+          const itemForm = this.fb.group({
+            ingredient_id: [item.ingredient_id, Validators.required],
+            quantity: [item.quantity, [Validators.required, Validators.min(0.01)]],
+            unit_id: [item.unit_id, Validators.required],
+            price: [item.price, [Validators.required, Validators.min(0)]]
+          });
 
-      const priceQtySub = itemForm.valueChanges.subscribe(() => {
-        this.updateTotal();
-      });
-      this.subscriptions.push(priceQtySub);
+          const priceQtySub = itemForm.valueChanges.subscribe(() => {
+            this.updateTotal();
+          });
+          this.subscriptions.push(priceQtySub);
 
-      this.itemsFormArray.push(itemForm);
+          this.itemsFormArray.push(itemForm);
+        });
+      },
+      error: () => {
+        // Si falla, intentar con datos locales
+        const localOrder = this.purchaseService.getByIdSync(id);
+        if (!localOrder) {
+          alert('No se encontró la orden solicitada.');
+          this.router.navigate(['/compras']);
+          return;
+        }
+        this.currentOrder = localOrder;
+        this.form.patchValue({
+          restaurant_id: localOrder.restaurant_id,
+          supplier_id: localOrder.supplier_id,
+          status: localOrder.status
+        });
+
+        this.itemsFormArray.clear();
+        localOrder.items.forEach((item: any) => {
+          const itemForm = this.fb.group({
+            ingredient_id: [item.ingredient_id, Validators.required],
+            quantity: [item.quantity, [Validators.required, Validators.min(0.01)]],
+            unit_id: [item.unit_id, Validators.required],
+            price: [item.price, [Validators.required, Validators.min(0)]]
+          });
+
+          const priceQtySub = itemForm.valueChanges.subscribe(() => {
+            this.updateTotal();
+          });
+          this.subscriptions.push(priceQtySub);
+
+          this.itemsFormArray.push(itemForm);
+        });
+      }
     });
   }
 
