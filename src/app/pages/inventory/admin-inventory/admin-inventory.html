@@ -52,17 +52,13 @@
         <div class="search-group">
           <input
             type="text"
-            placeholder="Buscar artículo, proveedor, restaurante o ingrediente..."
+            placeholder="Buscar por ingrediente o restaurante..."
             [(ngModel)]="searchTerm"
             (ngModelChange)="onFiltersChange()"
           />
           <span class="search-icon">🔍</span>
         </div>
         <div class="filters">
-          <select [(ngModel)]="categoryFilter" (change)="onFiltersChange()">
-            <option value="all">Todas las categorías</option>
-            <option *ngFor="let category of categories" [value]="category">{{ category }}</option>
-          </select>
           <select [(ngModel)]="restaurantFilter" (change)="onFiltersChange()">
             <option value="all">Todas las sedes</option>
             <option *ngFor="let restaurant of restaurants" [value]="restaurant.id">
@@ -71,9 +67,9 @@
           </select>
           <select [(ngModel)]="statusFilter" (change)="onFiltersChange()">
             <option value="all">Todos los estados</option>
-            <option value="Disponible">Disponible</option>
-            <option value="Crítico">Crítico</option>
-            <option value="Agotado">Agotado</option>
+            <option value="available">Disponible</option>
+            <option value="low">Crítico</option>
+            <option value="out">Agotado</option>
           </select>
           <button class="primary ghosty" (click)="goToCreate()">+ Crear Inventario</button>
         </div>
@@ -83,13 +79,11 @@
         <table>
           <thead>
             <tr>
-              <th>Artículo</th>
+              <th>ID</th>
               <th>Restaurante</th>
               <th>Ingrediente</th>
-              <th>Existencia</th>
-              <th>Categoría</th>
-              <th>Proveedor</th>
-              <th>Última actualización</th>
+              <th>Cantidad</th>
+              <th>Unidad</th>
               <th>Estado</th>
               <th></th>
             </tr>
@@ -102,44 +96,33 @@
             >
               <td>
                 <div class="item-info">
-                  <div class="avatar">
-                    {{ item.nombre.charAt(0) }}
-                  </div>
+                  <div class="avatar">{{ (item.ingredientName || item.id).charAt(0) }}</div>
                   <div>
-                    <strong>{{ item.nombre }}</strong>
-                    <p>{{ item.descripcion || 'Sin descripción' }}</p>
+                    <strong>{{ item.id }}</strong>
                   </div>
                 </div>
               </td>
-              <td class="location-cell">
-                <strong>{{ item.restaurantName }}</strong>
-                <p>{{ getRestaurantLocation(item.restaurantId) }}</p>
+              <td>
+                <strong>{{ item.restaurantName || 'N/A' }}</strong>
               </td>
               <td>
                 <div class="ingredient-chip">
-                  <span>{{ item.ingredientName }}</span>
-                  <small>{{ item.unitCode }}</small>
+                  <span>{{ item.ingredientName || 'N/A' }}</span>
+                  <small>{{ item.unitCode || '' }}</small>
                 </div>
               </td>
               <td>
                 <div class="quantity">
-                  <strong>{{ item.cantidad }}</strong>
-                  <span>{{ item.unidad }}</span>
+                  <strong>{{ item.quantity }}</strong>
                   <div class="progress-bar">
                     <div class="progress" [style.width.%]="getStockProgress(item)"></div>
                   </div>
                 </div>
               </td>
+              <td>{{ item.unitCode || 'N/A' }}</td>
               <td>
-                <span class="badge" [ngClass]="getCategoryBadge(item.categoria)">
-                  {{ item.categoria }}
-                </span>
-              </td>
-              <td>{{ item.proveedor }}</td>
-              <td>{{ formatDate(item.fechaActualizacion) }}</td>
-              <td>
-                <span class="status-chip" [ngClass]="item.estado.toLowerCase()">
-                  {{ item.estado }}
+                <span class="status-chip" [ngClass]="item.status || 'available'">
+                  {{ getStatusLabel(item.status) }}
                 </span>
               </td>
               <td class="actions">
@@ -153,8 +136,7 @@
       <ng-template #emptyState>
         <div class="empty-state">
           <h3>Sin resultados</h3>
-          <p>Prueba con otro término o crea un nuevo registro.</p>
-          <button class="primary" (click)="goToCreate()">Crear nuevo artículo</button>
+          <p>Prueba con otro término.</p>
         </div>
       </ng-template>
     </div>
@@ -162,47 +144,29 @@
     <aside class="insights-panel">
       <div class="detail-card" *ngIf="selectedItem as item; else placeholderCard">
         <div class="detail-cover">
-          <img [src]="item.imagen || defaultImage" [alt]="item.nombre" />
-          <span class="status-pill" [ngClass]="item.estado.toLowerCase()">{{ item.estado }}</span>
+          <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=900&q=80" alt="Inventario" />
+          <span class="status-pill" [ngClass]="item.status || 'available'">{{ getStatusLabel(item.status) }}</span>
         </div>
         <div class="detail-body">
           <p class="eyebrow">Detalle inteligente</p>
-          <h2>{{ item.nombre }}</h2>
-          <p class="description">{{ item.descripcion }}</p>
+          <h2>{{ item.ingredientName || item.id }}</h2>
           <div class="detail-grid">
             <div>
               <label>Stock actual</label>
-              <strong>{{ item.cantidad }} {{ item.unidad }}</strong>
-            </div>
-            <div>
-              <label>Reorden</label>
-              <strong>{{ item.nivelReorden }} {{ item.unidad }}</strong>
+              <strong>{{ item.quantity }} {{ item.unitCode || '' }}</strong>
             </div>
             <div>
               <label>Ingrediente</label>
-              <strong>{{ item.ingredientName }}</strong>
-            </div>
-            <div>
-              <label>Proveedor</label>
-              <strong>{{ item.proveedor }}</strong>
+              <strong>{{ item.ingredientName || 'Sin ingrediente' }}</strong>
             </div>
             <div>
               <label>Sede</label>
-              <strong>{{ item.restaurantName }}</strong>
-              <p>{{ getRestaurantLocation(item.restaurantId) }}</p>
+              <strong>{{ item.restaurantName || 'Sin restaurante' }}</strong>
             </div>
             <div>
-              <label>Caducidad</label>
-              <strong>{{ item.fechaExpiracion ? formatDate(item.fechaExpiracion) : 'Sin fecha' }}</strong>
+              <label>Unidad</label>
+              <strong>{{ item.unitCode || 'Sin unidad' }}</strong>
             </div>
-          </div>
-          <div class="notes" *ngIf="item.notas">
-            <label>Notas operativas</label>
-            <p>{{ item.notas }}</p>
-          </div>
-          <div class="detail-actions">
-            <button class="ghost" (click)="goToEdit(item.id)">Actualizar</button>
-            <button class="primary" (click)="goToCreate()">Crear nuevo</button>
           </div>
         </div>
       </div>
@@ -219,14 +183,12 @@
         <ul>
           <li *ngFor="let item of recentItems">
             <div>
-              <strong>{{ item.nombre }}</strong>
-              <p>{{ item.restaurantName }} · {{ item.proveedor }}</p>
+              <strong>{{ item.ingredientName || item.id }}</strong>
+              <p>{{ item.restaurantName || 'N/A' }}</p>
             </div>
-            <span>{{ formatDate(item.fechaActualizacion) }}</span>
           </li>
         </ul>
       </div>
     </aside>
   </section>
 </div>
-

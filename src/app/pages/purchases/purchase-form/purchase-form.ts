@@ -7,7 +7,8 @@ import { PurchaseService } from '../../../services/purchase.service';
 import {
   PurchaseOrder,
   PurchaseItem,
-  PurchaseStatus
+  PurchaseStatus,
+  PurchaseOrderDisplay
 } from '../../../models/purchase.model';
 import {
   InventoryRestaurant,
@@ -26,7 +27,7 @@ import {
 export class PurchaseFormComponent implements OnInit, OnDestroy {
   form!: FormGroup;
   isEditMode = false;
-  currentOrder?: PurchaseOrder;
+  currentOrder?: PurchaseOrderDisplay;
   pageTitle = 'Nueva Compra';
   ctaLabel = 'Guardar compra';
   private subscriptions: Subscription[] = [];
@@ -35,7 +36,7 @@ export class PurchaseFormComponent implements OnInit, OnDestroy {
   suppliers: InventorySupplier[] = [];
   ingredients: InventoryIngredient[] = [];
   units: InventoryUnit[] = [];
-  estados: PurchaseStatus[] = ['Pendiente', 'En Proceso', 'Completado', 'Cancelado'];
+  estados: PurchaseStatus[] = ['pending', 'in_process', 'completed', 'cancelled'];
 
   constructor(
     private fb: FormBuilder,
@@ -68,14 +69,10 @@ export class PurchaseFormComponent implements OnInit, OnDestroy {
 
   private buildForm(): void {
     this.form = this.fb.group({
-      restaurantId: [this.restaurants[0]?.id ?? '', Validators.required],
-      supplierId: [this.suppliers[0]?.id ?? '', Validators.required],
-      fechaPedido: [this.formatInputDate(new Date()), Validators.required],
-      fechaEntrega: [null],
-      status: ['Pendiente', Validators.required],
-      notas: [''],
-      items: this.fb.array([]),
-      montoTotal: [0]
+      restaurant_id: [this.restaurants[0]?.id ?? '', Validators.required],
+      supplier_id: [this.suppliers[0]?.id ?? '', Validators.required],
+      status: ['pending', Validators.required],
+      items: this.fb.array([])
     });
   }
 
@@ -85,25 +82,25 @@ export class PurchaseFormComponent implements OnInit, OnDestroy {
 
   addItem(): void {
     const itemForm = this.fb.group({
-      ingredientId: ['', Validators.required],
+      ingredient_id: ['', Validators.required],
       quantity: [1, [Validators.required, Validators.min(0.01)]],
-      unitId: [this.units[0]?.id ?? '', Validators.required],
+      unit_id: [this.units[0]?.id ?? '', Validators.required],
       price: [0, [Validators.required, Validators.min(0)]]
     });
 
-    const ingredientSub = itemForm.get('ingredientId')?.valueChanges.subscribe(value => {
+    const ingredientSub = itemForm.get('ingredient_id')?.valueChanges.subscribe(value => {
       const ingredient = this.ingredients.find(i => i.id === value);
       if (ingredient) {
         const unitId = ingredient.defaultUnitId;
         const unit = this.units.find(u => u.id === unitId);
         if (unit) {
-          itemForm.get('unitId')?.setValue(unitId, { emitEvent: false });
+          itemForm.get('unit_id')?.setValue(unitId, { emitEvent: false });
         }
       }
     });
 
     const priceQtySub = itemForm.valueChanges.subscribe(() => {
-      this.updateItemSubtotal(itemForm);
+      this.updateTotal();
     });
 
     this.subscriptions.push(ingredientSub!, priceQtySub);
@@ -115,20 +112,8 @@ export class PurchaseFormComponent implements OnInit, OnDestroy {
     this.updateTotal();
   }
 
-  private updateItemSubtotal(itemForm: FormGroup): void {
-    const quantity = itemForm.get('quantity')?.value || 0;
-    const price = itemForm.get('price')?.value || 0;
-    const subtotal = quantity * price;
-    itemForm.patchValue({ subtotal }, { emitEvent: false });
-    this.updateTotal();
-  }
-
   private updateTotal(): void {
-    const items = this.itemsFormArray.value;
-    const total = items.reduce((sum: number, item: any) => {
-      return sum + ((item.quantity || 0) * (item.price || 0));
-    }, 0);
-    this.form.patchValue({ montoTotal: total }, { emitEvent: false });
+    // El total se calcula en el backend, aquí solo para mostrar
   }
 
   private loadOrder(id: string): void {
@@ -140,36 +125,27 @@ export class PurchaseFormComponent implements OnInit, OnDestroy {
     }
     this.currentOrder = order;
     this.form.patchValue({
-      restaurantId: order.restaurantId,
-      supplierId: order.supplierId,
-      fechaPedido: this.formatInputDate(order.fechaPedido),
-      fechaEntrega: order.fechaEntrega ? this.formatInputDate(order.fechaEntrega) : null,
-      status: order.status,
-      notas: order.notas || ''
+      restaurant_id: order.restaurant_id,
+      supplier_id: order.supplier_id,
+      status: order.status
     });
 
     this.itemsFormArray.clear();
     order.items.forEach(item => {
       const itemForm = this.fb.group({
-        ingredientId: [item.ingredientId, Validators.required],
+        ingredient_id: [item.ingredient_id, Validators.required],
         quantity: [item.quantity, [Validators.required, Validators.min(0.01)]],
-        unitId: [item.unitId, Validators.required],
+        unit_id: [item.unit_id, Validators.required],
         price: [item.price, [Validators.required, Validators.min(0)]]
       });
-      
+
       const priceQtySub = itemForm.valueChanges.subscribe(() => {
-        this.updateItemSubtotal(itemForm);
+        this.updateTotal();
       });
       this.subscriptions.push(priceQtySub);
-      
+
       this.itemsFormArray.push(itemForm);
     });
-    this.updateTotal();
-  }
-
-  private formatInputDate(date: Date | string): string {
-    const d = typeof date === 'string' ? new Date(date) : date;
-    return d.toISOString().split('T')[0];
   }
 
   submit(): void {
@@ -182,37 +158,19 @@ export class PurchaseFormComponent implements OnInit, OnDestroy {
     }
 
     const value = this.form.value;
-    const restaurant = this.restaurants.find(r => r.id === value.restaurantId);
-    const supplier = this.suppliers.find(s => s.id === value.supplierId);
 
-    const items: PurchaseItem[] = value.items.map((item: any, index: number) => {
-      const ingredient = this.ingredients.find(i => i.id === item.ingredientId);
-      const unit = this.units.find(u => u.id === item.unitId);
-      return {
-        id: this.currentOrder?.items[index]?.id || `pi-${Date.now()}-${index}`,
-        purchaseItemId: this.currentOrder?.items[index]?.purchaseItemId || `pi-${Date.now()}-${index}`,
-        orderId: this.currentOrder?.orderId || '',
-        ingredientId: item.ingredientId,
-        ingredientName: ingredient?.name || '',
-        quantity: Number(item.quantity),
-        unitId: item.unitId,
-        unitCode: unit?.code || '',
-        price: Number(item.price),
-        subtotal: Number(item.quantity) * Number(item.price)
-      };
-    });
+    const items: PurchaseItem[] = value.items.map((item: any) => ({
+      ingredient_id: item.ingredient_id,
+      quantity: Number(item.quantity),
+      unit_id: item.unit_id,
+      price: Number(item.price)
+    }));
 
-    const payload: Omit<PurchaseOrder, 'id' | 'orderId' | 'fechaCreacion' | 'fechaActualizacion'> = {
-      restaurantId: value.restaurantId,
-      restaurantName: restaurant?.name || '',
-      supplierId: value.supplierId,
-      supplierName: supplier?.name || '',
-      fechaPedido: new Date(value.fechaPedido),
-      fechaEntrega: value.fechaEntrega ? new Date(value.fechaEntrega) : null,
-      montoTotal: items.reduce((sum, item) => sum + item.subtotal, 0),
+    const payload: Omit<PurchaseOrder, 'id'> = {
+      restaurant_id: value.restaurant_id,
+      supplier_id: value.supplier_id,
       status: value.status,
-      items,
-      notas: value.notas?.trim() || undefined
+      items: items
     };
 
     if (this.isEditMode && this.currentOrder) {
@@ -257,5 +215,14 @@ export class PurchaseFormComponent implements OnInit, OnDestroy {
     const price = itemForm.get('price')?.value || 0;
     return quantity * price;
   }
-}
 
+  getStatusLabel(status: PurchaseStatus): string {
+    const labels: { [key: string]: string } = {
+      'pending': 'Pendiente',
+      'completed': 'Completado',
+      'cancelled': 'Cancelado',
+      'in_process': 'En Proceso'
+    };
+    return labels[status] || status;
+  }
+}

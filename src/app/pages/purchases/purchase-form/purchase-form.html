@@ -1,235 +1,110 @@
 <div class="purchase-form-page">
-  <div class="form-header">
-    <div class="header-left">
-      <button class="back-btn" (click)="cancel()">
-        <span>←</span> Volver
-      </button>
-      <div class="header-title">
-        <h1>CREAR COMPRAS</h1>
-        <p>Complete el formulario para registrar una nueva compra</p>
+  <section class="form-hero">
+    <div class="hero-content">
+      <p class="eyebrow">Gestión de Compras</p>
+      <h1>{{ pageTitle }}</h1>
+      <p>
+        Registra y gestiona tus pedidos a proveedores, asegurando el stock necesario para tus operaciones.
+      </p>
+      <div class="hero-tags">
+        <span>Control de inventario</span>
+        <span>Optimización de costos</span>
       </div>
     </div>
-    <div class="header-badge">
-      <span class="badge-icon">🛒</span>
-      <span>Nueva Compra</span>
+    <div class="hero-image">
+      <img src="https://images.unsplash.com/photo-1587560440462-772956505563?auto=format&fit=crop&w=900&q=80" alt="Formulario de Compras" />
     </div>
-  </div>
+  </section>
 
-  <div class="form-wrapper">
-    <div class="form-container">
-      <div class="form-content">
-        <div class="form-tabs">
-          <div class="tab active">
-            <span class="tab-icon">📋</span>
-            <span>Datos Principales</span>
-          </div>
-          <div class="tab">
-            <span class="tab-icon">📦</span>
-            <span>Ítems ({{ itemsFormArray.length }})</span>
+  <form [formGroup]="form" (ngSubmit)="submit()" class="purchase-form">
+    <div class="form-grid">
+      <article class="form-card">
+        <h2>Detalles del Pedido</h2>
+        <div class="fields-grid">
+          <label [class]="getFieldClass('restaurant_id')">
+            <span>Sede *</span>
+            <select formControlName="restaurant_id">
+              <option value="">Seleccionar restaurante</option>
+              <option *ngFor="let restaurant of restaurants" [value]="restaurant.id">
+                {{ restaurant.name }}
+              </option>
+            </select>
+          </label>
+
+          <label [class]="getFieldClass('supplier_id')">
+            <span>Proveedor *</span>
+            <select formControlName="supplier_id">
+              <option value="">Seleccionar proveedor</option>
+              <option *ngFor="let supplier of suppliers" [value]="supplier.id">{{ supplier.name }}</option>
+            </select>
+          </label>
+
+          <label [class]="getFieldClass('status')">
+            <span>Estado *</span>
+            <select formControlName="status">
+              <option *ngFor="let estado of estados" [value]="estado">{{ getStatusLabel(estado) }}</option>
+            </select>
+          </label>
+        </div>
+      </article>
+
+      <article class="form-card">
+        <h2>Ítems de la Compra</h2>
+        <div formArrayName="items" class="items-list">
+          <div *ngFor="let itemForm of itemsFormArray.controls; let i = index" [formGroupName]="i" class="item-row">
+            <label [class]="getItemFieldClass(i, 'ingredient_id')">
+              <span>Ingrediente *</span>
+              <select formControlName="ingredient_id">
+                <option value="">Seleccionar ingrediente</option>
+                <option *ngFor="let ingredient of ingredients" [value]="ingredient.id">
+                  {{ ingredient.name }}
+                </option>
+              </select>
+            </label>
+
+            <label [class]="getItemFieldClass(i, 'quantity')">
+              <span>Cantidad *</span>
+              <input type="number" min="0.01" step="0.01" formControlName="quantity" />
+            </label>
+
+            <label [class]="getItemFieldClass(i, 'unit_id')">
+              <span>Unidad *</span>
+              <select formControlName="unit_id">
+                <option *ngFor="let unit of units" [value]="unit.id">
+                  {{ unit.code }}
+                </option>
+              </select>
+            </label>
+
+            <label [class]="getItemFieldClass(i, 'price')">
+              <span>Precio Unitario *</span>
+              <input type="number" min="0" step="0.01" formControlName="price" />
+            </label>
+
+            <div class="item-subtotal">
+              <span>Subtotal</span>
+              <strong>${{ getItemSubtotal(i) | number:'1.2-2' }}</strong>
+            </div>
+
+            <button type="button" class="remove-item-btn" (click)="removeItem(i)" *ngIf="itemsFormArray.length > 1">
+              🗑️
+            </button>
           </div>
         </div>
+        <button type="button" class="add-item-btn" (click)="addItem()">+ Agregar Ítem</button>
 
-        <form [formGroup]="form" (ngSubmit)="submit()" class="purchase-form">
-          <div class="form-section">
-            <div class="section-header">
-              <h3>Información del Pedido</h3>
-              <div class="section-divider"></div>
-            </div>
-            <div class="fields-grid">
-              <div class="field-group">
-                <label [class]="getFieldClass('restaurantId')">
-                  <span class="label-text">
-                    <span class="label-icon">🏢</span>
-                    Restaurante *
-                  </span>
-                  <select formControlName="restaurantId" class="styled-select">
-                    <option value="">Seleccionar restaurante</option>
-                    <option *ngFor="let restaurant of restaurants" [value]="restaurant.id">
-                      {{ restaurant.name }}
-                    </option>
-                  </select>
-                </label>
-              </div>
-
-              <div class="field-group">
-                <label [class]="getFieldClass('supplierId')">
-                  <span class="label-text">
-                    <span class="label-icon">🚚</span>
-                    Proveedor *
-                  </span>
-                  <select formControlName="supplierId" class="styled-select">
-                    <option value="">Seleccionar proveedor</option>
-                    <option *ngFor="let supplier of suppliers" [value]="supplier.id">
-                      {{ supplier.name }}
-                    </option>
-                  </select>
-                </label>
-              </div>
-
-              <div class="field-group">
-                <label [class]="getFieldClass('fechaPedido')">
-                  <span class="label-text">
-                    <span class="label-icon">📅</span>
-                    Fecha de Pedido *
-                  </span>
-                  <input type="date" formControlName="fechaPedido" class="styled-input" />
-                </label>
-              </div>
-
-              <div class="field-group">
-                <label>
-                  <span class="label-text">
-                    <span class="label-icon">📆</span>
-                    Fecha de Entrega
-                  </span>
-                  <input type="date" formControlName="fechaEntrega" class="styled-input" />
-                </label>
-              </div>
-
-              <div class="field-group">
-                <label [class]="getFieldClass('status')">
-                  <span class="label-text">
-                    <span class="label-icon">⚡</span>
-                    Estado *
-                  </span>
-                  <select formControlName="status" class="styled-select">
-                    <option *ngFor="let estado of estados" [value]="estado">{{ estado }}</option>
-                  </select>
-                </label>
-              </div>
-
-              <div class="field-group total-preview">
-                <label>
-                  <span class="label-text">
-                    <span class="label-icon">💰</span>
-                    Valor Total
-                  </span>
-                  <div class="total-preview-box">
-                    <span class="currency">$</span>
-                    <span class="amount">{{ getTotal() | number:'1.2-2' }}</span>
-                  </div>
-                </label>
-              </div>
-
-              <div class="field-group full-width">
-                <label>
-                  <span class="label-text">
-                    <span class="label-icon">📝</span>
-                    Observaciones
-                  </span>
-                  <textarea rows="3" placeholder="Notas adicionales sobre el pedido..." formControlName="notas" class="styled-textarea"></textarea>
-                </label>
-              </div>
-            </div>
+        <div class="total-section">
+          <div class="total-display">
+            <span>Total de la compra:</span>
+            <strong>${{ getTotal() | number:'1.2-2' }}</strong>
           </div>
-
-          <div class="items-section">
-            <div class="section-header">
-              <h3>Ítems de la Compra</h3>
-              <button type="button" class="add-item-btn" (click)="addItem()">
-                <span>+</span>
-                Agregar Ítem
-              </button>
-            </div>
-
-            <div class="items-table-container">
-              <table class="items-table">
-                <thead>
-                  <tr>
-                    <th>Ingrediente</th>
-                    <th>Cantidad</th>
-                    <th>Unidad</th>
-                    <th>Precio Unit.</th>
-                    <th>Subtotal</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr
-                    *ngFor="let item of itemsFormArray.controls; let i = index"
-                    [formGroup]="$any(item)"
-                    class="item-row"
-                  >
-                    <td class="ingredient-cell">
-                      <label [class]="getItemFieldClass(i, 'ingredientId')" class="item-field">
-                        <select formControlName="ingredientId" class="table-select">
-                          <option value="">Seleccionar</option>
-                          <option *ngFor="let ingredient of ingredients" [value]="ingredient.id">
-                            {{ ingredient.name }}
-                          </option>
-                        </select>
-                      </label>
-                    </td>
-                    <td class="quantity-cell">
-                      <label [class]="getItemFieldClass(i, 'quantity')" class="item-field">
-                        <input type="number" min="0.01" step="0.01" formControlName="quantity" class="table-input" />
-                      </label>
-                    </td>
-                    <td class="unit-cell">
-                      <label [class]="getItemFieldClass(i, 'unitId')" class="item-field">
-                        <select formControlName="unitId" class="table-select">
-                          <option *ngFor="let unit of units" [value]="unit.id">
-                            {{ unit.code }}
-                          </option>
-                        </select>
-                      </label>
-                    </td>
-                    <td class="price-cell">
-                      <label [class]="getItemFieldClass(i, 'price')" class="item-field">
-                        <div class="price-input-wrapper">
-                          <span class="currency-symbol">$</span>
-                          <input type="number" min="0" step="0.01" formControlName="price" class="table-input price-input" />
-                        </div>
-                      </label>
-                    </td>
-                    <td class="subtotal-cell">
-                      <div class="subtotal-display">
-                        <span class="subtotal-amount">${{ getItemSubtotal(i) | number:'1.2-2' }}</span>
-                      </div>
-                    </td>
-                    <td class="actions-cell">
-                      <button
-                        type="button"
-                        class="remove-item-btn"
-                        (click)="removeItem(i)"
-                        *ngIf="itemsFormArray.length > 1"
-                        title="Eliminar ítem"
-                      >
-                        <span>🗑️</span>
-                      </button>
-                    </td>
-                  </tr>
-                </tbody>
-                <tfoot>
-                  <tr class="total-row">
-                    <td colspan="4" class="total-label">
-                      <strong>TOTAL DE LA COMPRA</strong>
-                    </td>
-                    <td class="total-amount-cell">
-                      <div class="total-amount">
-                        <span class="currency-large">$</span>
-                        <span class="amount-large">{{ getTotal() | number:'1.2-2' }}</span>
-                      </div>
-                    </td>
-                    <td></td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </div>
-
-          <div class="form-actions">
-            <button type="button" class="cancel-btn" (click)="cancel()">
-              <span>✕</span>
-              Cancelar
-            </button>
-            <button type="submit" class="save-btn">
-              <span>✓</span>
-              {{ ctaLabel }}
-            </button>
-          </div>
-        </form>
-      </div>
+        </div>
+      </article>
     </div>
-  </div>
+
+    <footer class="form-actions">
+      <button type="button" class="ghost" (click)="cancel()">Cancelar</button>
+      <button type="submit" class="primary">{{ ctaLabel }}</button>
+    </footer>
+  </form>
 </div>

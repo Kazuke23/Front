@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { PurchaseService } from '../../../services/purchase.service';
-import { PurchaseOrder, PurchaseStatus } from '../../../models/purchase.model';
+import { PurchaseOrderDisplay, PurchaseStatus } from '../../../models/purchase.model';
 
 interface StatCard {
   label: string;
@@ -21,9 +21,9 @@ interface StatCard {
   styleUrls: ['./purchase-list.css']
 })
 export class PurchaseListComponent implements OnInit, OnDestroy {
-  orders: PurchaseOrder[] = [];
-  filteredOrders: PurchaseOrder[] = [];
-  recentOrders: PurchaseOrder[] = [];
+  orders: PurchaseOrderDisplay[] = [];
+  filteredOrders: PurchaseOrderDisplay[] = [];
+  recentOrders: PurchaseOrderDisplay[] = [];
   stats = {
     totalOrders: 0,
     totalAmount: 0,
@@ -39,7 +39,7 @@ export class PurchaseListComponent implements OnInit, OnDestroy {
   statusFilter: string = 'all';
   supplierFilter: string = 'all';
   restaurantFilter: string = 'all';
-  selectedOrder: PurchaseOrder | null = null;
+  selectedOrder: PurchaseOrderDisplay | null = null;
   statCards: StatCard[] = [];
   currentPage = 1;
   itemsPerPage = 10;
@@ -53,9 +53,7 @@ export class PurchaseListComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.subscription = this.purchaseService.purchase$.subscribe(orders => {
-      this.orders = [...orders].sort(
-        (a, b) => b.fechaPedido.getTime() - a.fechaPedido.getTime()
-      );
+      this.orders = this.purchaseService.getAll();
       if (!this.selectedOrder && this.orders.length) {
         this.selectedOrder = this.orders[0];
       }
@@ -109,20 +107,20 @@ export class PurchaseListComponent implements OnInit, OnDestroy {
     this.filteredOrders = this.orders.filter(order => {
       const matchesSearch =
         !search ||
-        order.orderId.toLowerCase().includes(search) ||
-        order.supplierName.toLowerCase().includes(search) ||
-        order.restaurantName.toLowerCase().includes(search);
+        order.id.toLowerCase().includes(search) ||
+        (order.supplierName && order.supplierName.toLowerCase().includes(search)) ||
+        (order.restaurantName && order.restaurantName.toLowerCase().includes(search));
       const matchesStatus =
         this.statusFilter === 'all' || order.status === this.statusFilter;
       const matchesSupplier =
-        this.supplierFilter === 'all' || order.supplierId === this.supplierFilter;
+        this.supplierFilter === 'all' || order.supplier_id === this.supplierFilter;
       const matchesRestaurant =
-        this.restaurantFilter === 'all' || order.restaurantId === this.restaurantFilter;
+        this.restaurantFilter === 'all' || order.restaurant_id === this.restaurantFilter;
       return matchesSearch && matchesStatus && matchesSupplier && matchesRestaurant;
     });
   }
 
-  selectOrder(order: PurchaseOrder): void {
+  selectOrder(order: PurchaseOrderDisplay): void {
     this.selectedOrder = order;
   }
 
@@ -134,14 +132,14 @@ export class PurchaseListComponent implements OnInit, OnDestroy {
     this.router.navigate(['/compras/edit', id]);
   }
 
-  editOrder(order: PurchaseOrder, event: MouseEvent): void {
+  editOrder(order: PurchaseOrderDisplay, event: MouseEvent): void {
     event.stopPropagation();
     this.goToEdit(order.id);
   }
 
-  deleteOrder(order: PurchaseOrder, event: MouseEvent): void {
+  deleteOrder(order: PurchaseOrderDisplay, event: MouseEvent): void {
     event.stopPropagation();
-    const confirmed = confirm(`¿Eliminar la orden "${order.orderId}"?`);
+    const confirmed = confirm(`¿Eliminar la orden "${order.id}"?`);
     if (confirmed) {
       this.purchaseService.delete(order.id);
       if (this.selectedOrder?.id === order.id) {
@@ -150,24 +148,25 @@ export class PurchaseListComponent implements OnInit, OnDestroy {
     }
   }
 
-  formatDate(date?: Date | null): string {
-    if (!date) return '--/--/--';
-    return new Intl.DateTimeFormat('es-ES', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    }).format(date);
+  getStatusClass(status: PurchaseStatus): string {
+    return status.toLowerCase().replace(/_/g, '-');
   }
 
-  getStatusClass(status: PurchaseStatus): string {
-    return status.toLowerCase().replace(/\s+/g, '-');
+  getStatusLabel(status: PurchaseStatus): string {
+    const labels: { [key: string]: string } = {
+      'pending': 'Pendiente',
+      'completed': 'Completado',
+      'cancelled': 'Cancelado',
+      'in_process': 'En Proceso'
+    };
+    return labels[status] || status;
   }
 
   getTotalPages(): number {
     return Math.ceil(this.filteredOrders.length / this.itemsPerPage);
   }
 
-  getPaginatedOrders(): PurchaseOrder[] {
+  getPaginatedOrders(): PurchaseOrderDisplay[] {
     const start = (this.currentPage - 1) * this.itemsPerPage;
     const end = start + this.itemsPerPage;
     return this.filteredOrders.slice(start, end);
@@ -187,8 +186,15 @@ export class PurchaseListComponent implements OnInit, OnDestroy {
     return this.purchaseService.getRestaurants();
   }
 
-  trackById(_: number, order: PurchaseOrder): string {
+  trackById(_: number, order: PurchaseOrderDisplay): string {
     return order.id;
   }
-}
 
+  // Método para reinicializar datos si hay problemas
+  resetData(): void {
+    if (confirm('¿Desea reinicializar todos los datos de compras? Esto eliminará todos los pedidos actuales.')) {
+      this.purchaseService.resetData();
+      this.refreshData();
+    }
+  }
+}

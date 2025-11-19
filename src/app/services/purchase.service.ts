@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
-import { PurchaseOrder, PurchaseItem, PURCHASE_SAMPLE, PurchaseStatus } from '../models/purchase.model';
+import { PurchaseOrder, PurchaseItem, PURCHASE_SAMPLE, PurchaseStatus, PurchaseOrderDisplay } from '../models/purchase.model';
 import { INVENTORY_RESTAURANTS, INVENTORY_SUPPLIERS, INVENTORY_INGREDIENTS, INVENTORY_UNITS } from '../models/inventory.model';
 
 @Injectable({
@@ -15,25 +15,19 @@ export class PurchaseService {
     this.loadFromStorage();
   }
 
-  getAll(): PurchaseOrder[] {
-    return this.purchaseSubject.value;
+  getAll(): PurchaseOrderDisplay[] {
+    return this.purchaseSubject.value.map(order => this.enrichOrder(order));
   }
 
-  getById(id: string): PurchaseOrder | undefined {
-    return this.purchaseSubject.value.find(order => order.id === id);
+  getById(id: string): PurchaseOrderDisplay | undefined {
+    const order = this.purchaseSubject.value.find(o => o.id === id);
+    return order ? this.enrichOrder(order) : undefined;
   }
 
-  getByOrderId(orderId: string): PurchaseOrder | undefined {
-    return this.purchaseSubject.value.find(order => order.orderId === orderId);
-  }
-
-  create(order: Omit<PurchaseOrder, 'id' | 'orderId' | 'fechaCreacion' | 'fechaActualizacion'>): PurchaseOrder {
+  create(order: Omit<PurchaseOrder, 'id'>): PurchaseOrder {
     const newOrder: PurchaseOrder = {
       ...order,
-      id: this.generateId(),
-      orderId: this.generateOrderId(),
-      fechaCreacion: new Date(),
-      fechaActualizacion: new Date()
+      id: this.generateId()
     };
 
     const updated = [newOrder, ...this.purchaseSubject.value];
@@ -51,9 +45,7 @@ export class PurchaseService {
 
     const updatedOrder: PurchaseOrder = {
       ...orders[index],
-      ...changes,
-      fechaActualizacion: new Date(),
-      montoTotal: this.calculateTotal(changes.items || orders[index].items)
+      ...changes
     };
 
     const updated = [...orders];
@@ -69,19 +61,21 @@ export class PurchaseService {
   }
 
   calculateTotal(items: PurchaseItem[]): number {
-    return items.reduce((sum, item) => sum + (item.subtotal || item.price * item.quantity), 0);
+    return items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   }
 
   getSummary() {
     const orders = this.purchaseSubject.value;
     const totalOrders = orders.length;
-    const totalAmount = orders.reduce((sum, order) => sum + order.montoTotal, 0);
-    const pending = orders.filter(order => order.status === 'Pendiente').length;
-    const completed = orders.filter(order => order.status === 'Completado').length;
-    const canceled = orders.filter(order => order.status === 'Cancelado').length;
-    const inProcess = orders.filter(order => order.status === 'En Proceso').length;
-    const restaurants = new Set(orders.map(order => order.restaurantId)).size;
-    const suppliers = new Set(orders.map(order => order.supplierId)).size;
+    const totalAmount = orders.reduce((sum, order) => {
+      return sum + this.calculateTotal(order.items);
+    }, 0);
+    const pending = orders.filter(order => order.status === 'pending').length;
+    const completed = orders.filter(order => order.status === 'completed').length;
+    const canceled = orders.filter(order => order.status === 'cancelled').length;
+    const inProcess = orders.filter(order => order.status === 'in_process').length;
+    const restaurants = new Set(orders.map(order => order.restaurant_id)).size;
+    const suppliers = new Set(orders.map(order => order.supplier_id)).size;
 
     return {
       totalOrders,
@@ -111,6 +105,36 @@ export class PurchaseService {
     return [...INVENTORY_UNITS];
   }
 
+  // Método para reinicializar datos (útil para limpiar datos corruptos)
+  resetData(): void {
+    localStorage.removeItem(this.storageKey);
+    this.purchaseSubject.next([...PURCHASE_SAMPLE]);
+    this.persist();
+  }
+
+  private enrichOrder(order: PurchaseOrder): PurchaseOrderDisplay {
+    const restaurant = INVENTORY_RESTAURANTS.find(r => r.id === order.restaurant_id);
+    const supplier = INVENTORY_SUPPLIERS.find(s => s.id === order.supplier_id);
+    const ingredientNames: { [key: string]: string } = {};
+    const unitCodes: { [key: string]: string } = {};
+
+    order.items.forEach(item => {
+      const ingredient = INVENTORY_INGREDIENTS.find(i => i.id === item.ingredient_id);
+      const unit = INVENTORY_UNITS.find(u => u.id === item.unit_id);
+      if (ingredient) ingredientNames[item.ingredient_id] = ingredient.name;
+      if (unit) unitCodes[item.unit_id] = unit.code;
+    });
+
+    return {
+      ...order,
+      restaurantName: restaurant?.name,
+      supplierName: supplier?.name,
+      totalAmount: this.calculateTotal(order.items),
+      ingredientNames,
+      unitCodes
+    };
+  }
+
   private generateId(): string {
     if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
       return crypto.randomUUID();
@@ -118,24 +142,15 @@ export class PurchaseService {
     return 'po-' + Math.random().toString(36).substring(2, 11);
   }
 
-  private generateOrderId(): string {
-    const year = new Date().getFullYear();
-    const count = this.purchaseSubject.value.length + 1;
-    return `PO-${year}-${count.toString().padStart(3, '0')}`;
-  }
-
   private persist(): void {
     try {
       const plainOrders = this.purchaseSubject.value.map(order => ({
         ...order,
-        fechaPedido: order.fechaPedido instanceof Date ? order.fechaPedido.toISOString() : order.fechaPedido,
-        fechaCreacion: order.fechaCreacion instanceof Date ? order.fechaCreacion.toISOString() : order.fechaCreacion,
-        fechaActualizacion: order.fechaActualizacion instanceof Date ? order.fechaActualizacion.toISOString() : order.fechaActualizacion,
-        fechaEntrega: order.fechaEntrega instanceof Date ? order.fechaEntrega.toISOString() : order.fechaEntrega
+        items: order.items.map(item => ({ ...item }))
       }));
       localStorage.setItem(this.storageKey, JSON.stringify(plainOrders));
     } catch (error) {
-      console.error('Error guardando compras', error);
+      console.error('Error saving purchase orders', error);
     }
   }
 
@@ -149,26 +164,65 @@ export class PurchaseService {
       }
 
       const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed)) {
+      if (!Array.isArray(parsed) || parsed.length === 0) {
         this.purchaseSubject.next([...PURCHASE_SAMPLE]);
         this.persist();
         return;
       }
 
-      const hydrated = parsed.map((order: any) => ({
-        ...order,
-        fechaPedido: order.fechaPedido ? new Date(order.fechaPedido) : new Date(),
-        fechaCreacion: order.fechaCreacion ? new Date(order.fechaCreacion) : new Date(),
-        fechaActualizacion: order.fechaActualizacion ? new Date(order.fechaActualizacion) : new Date(),
-        fechaEntrega: order.fechaEntrega ? new Date(order.fechaEntrega) : null,
-        items: order.items || []
-      }));
+      // Validar y corregir IDs si es necesario
+      const validOrders = parsed
+        .filter(order => 
+          order && 
+          order.id && 
+          order.restaurant_id && 
+          order.supplier_id && 
+          order.status && 
+          Array.isArray(order.items)
+        )
+        .map(order => {
+          // Verificar que los IDs existan en los catálogos
+          const restaurantExists = INVENTORY_RESTAURANTS.some(r => r.id === order.restaurant_id);
+          const supplierExists = INVENTORY_SUPPLIERS.some(s => s.id === order.supplier_id);
+          
+          // Si los IDs no existen, usar los primeros del catálogo
+          if (!restaurantExists && INVENTORY_RESTAURANTS.length > 0) {
+            order.restaurant_id = INVENTORY_RESTAURANTS[0].id;
+          }
+          if (!supplierExists && INVENTORY_SUPPLIERS.length > 0) {
+            order.supplier_id = INVENTORY_SUPPLIERS[0].id;
+          }
 
-      this.purchaseSubject.next(hydrated);
+          // Corregir IDs de items
+          order.items = order.items.map((item: any) => {
+            const ingredientExists = INVENTORY_INGREDIENTS.some(i => i.id === item.ingredient_id);
+            const unitExists = INVENTORY_UNITS.some(u => u.id === item.unit_id);
+            
+            if (!ingredientExists && INVENTORY_INGREDIENTS.length > 0) {
+              item.ingredient_id = INVENTORY_INGREDIENTS[0].id;
+            }
+            if (!unitExists && INVENTORY_UNITS.length > 0) {
+              item.unit_id = INVENTORY_UNITS[0].id;
+            }
+            
+            return item;
+          });
+
+          return order;
+        });
+
+      if (validOrders.length === 0) {
+        this.purchaseSubject.next([...PURCHASE_SAMPLE]);
+        this.persist();
+        return;
+      }
+
+      this.purchaseSubject.next(validOrders);
+      this.persist(); // Guardar datos corregidos
     } catch (error) {
-      console.error('Error cargando compras', error);
+      console.error('Error loading purchase orders', error);
       this.purchaseSubject.next([...PURCHASE_SAMPLE]);
+      this.persist();
     }
   }
 }
-

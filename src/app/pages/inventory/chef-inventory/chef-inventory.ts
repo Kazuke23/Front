@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { InventoryService } from '../../../services/inventory.service';
-import { InventoryItem, InventoryRestaurant } from '../../../models/inventory.model';
+import { InventoryItemDisplay, InventoryRestaurant } from '../../../models/inventory.model';
 
 interface StatCard {
   label: string;
@@ -20,9 +20,9 @@ interface StatCard {
   styleUrls: ['./chef-inventory.css']
 })
 export class ChefInventoryComponent implements OnInit, OnDestroy {
-  items: InventoryItem[] = [];
-  filteredItems: InventoryItem[] = [];
-  recentItems: InventoryItem[] = [];
+  items: InventoryItemDisplay[] = [];
+  filteredItems: InventoryItemDisplay[] = [];
+  recentItems: InventoryItemDisplay[] = [];
   categories: string[] = [];
   restaurants: InventoryRestaurant[] = [];
   stats = {
@@ -38,8 +38,7 @@ export class ChefInventoryComponent implements OnInit, OnDestroy {
   categoryFilter: string = 'all';
   statusFilter: string = 'all';
   restaurantFilter: string = 'all';
-  selectedItem: InventoryItem | null = null;
-  defaultImage = 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=900&q=80';
+  selectedItem: InventoryItemDisplay | null = null;
   statCards: StatCard[] = [];
 
   private subscription?: Subscription;
@@ -51,10 +50,8 @@ export class ChefInventoryComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.subscription = this.inventoryService.inventory$.subscribe(items => {
-      this.items = [...items].sort(
-        (a, b) => b.fechaActualizacion.getTime() - a.fechaActualizacion.getTime()
-      );
+    this.subscription = this.inventoryService.inventory$.subscribe(() => {
+      this.items = this.inventoryService.getAll();
       if (!this.selectedItem && this.items.length) {
         this.selectedItem = this.items[0];
       }
@@ -114,52 +111,37 @@ export class ChefInventoryComponent implements OnInit, OnDestroy {
     this.filteredItems = this.items.filter(item => {
       const matchesSearch =
         !search ||
-        item.nombre.toLowerCase().includes(search) ||
-        item.proveedor.toLowerCase().includes(search) ||
-        item.categoria.toLowerCase().includes(search) ||
-        item.restaurantName.toLowerCase().includes(search) ||
-        item.ingredientName.toLowerCase().includes(search);
-      const matchesCategory =
-        this.categoryFilter === 'all' || item.categoria === this.categoryFilter;
+        (item.ingredientName && item.ingredientName.toLowerCase().includes(search)) ||
+        (item.restaurantName && item.restaurantName.toLowerCase().includes(search));
       const matchesStatus =
-        this.statusFilter === 'all' || item.estado === this.statusFilter;
+        this.statusFilter === 'all' || (item.status && item.status === this.statusFilter);
       const matchesRestaurant =
-        this.restaurantFilter === 'all' || item.restaurantId === this.restaurantFilter;
-      return matchesSearch && matchesCategory && matchesStatus && matchesRestaurant;
+        this.restaurantFilter === 'all' || item.restaurant_id === this.restaurantFilter;
+      return matchesSearch && matchesStatus && matchesRestaurant;
     });
   }
 
-  selectItem(item: InventoryItem): void {
+  selectItem(item: InventoryItemDisplay): void {
     this.selectedItem = item;
   }
 
-  formatDate(date?: Date | null): string {
-    if (!date) return '--/--/--';
-    return new Intl.DateTimeFormat('es-ES', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    }).format(date);
-  }
-
-  getStockProgress(item: InventoryItem): number {
-    if (!item.nivelReorden) return 100;
-    const ratio = (item.cantidad / item.nivelReorden) * 100;
+  getStockProgress(item: InventoryItemDisplay): number {
+    const criticalLevel = 10;
+    const ratio = (item.quantity / criticalLevel) * 100;
     return Math.max(5, Math.min(ratio, 120));
   }
 
-  getCategoryBadge(category: string): string {
-    const normalized = category.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-    return normalized;
+  getStatusLabel(status?: string): string {
+    if (!status) return 'Disponible';
+    const labels: { [key: string]: string } = {
+      'available': 'Disponible',
+      'low': 'Crítico',
+      'out': 'Agotado'
+    };
+    return labels[status] || 'Disponible';
   }
 
-  getRestaurantLocation(restaurantId: string): string {
-    const restaurant = this.restaurants.find(r => r.id === restaurantId);
-    return restaurant ? `${restaurant.city}, ${restaurant.country}` : '';
-  }
-
-  trackById(_: number, item: InventoryItem): string {
+  trackById(_: number, item: InventoryItemDisplay): string {
     return item.id;
   }
 }
-
