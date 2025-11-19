@@ -52,8 +52,28 @@ export class AdminInventoryComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    // Cargar datos del backend al iniciar
+    this.inventoryService.getAll().subscribe({
+      next: (items) => {
+        this.items = items;
+        if (!this.selectedItem && this.items.length) {
+          this.selectedItem = this.items[0];
+        }
+        this.refreshData();
+      },
+      error: () => {
+        // Si falla, usar datos locales
+        this.items = this.inventoryService.getAllSync();
+        if (!this.selectedItem && this.items.length) {
+          this.selectedItem = this.items[0];
+        }
+        this.refreshData();
+      }
+    });
+
+    // Suscribirse a cambios en el BehaviorSubject
     this.subscription = this.inventoryService.inventory$.subscribe(() => {
-      this.items = this.inventoryService.getAll();
+      this.items = this.inventoryService.getAllSync();
       if (!this.selectedItem && this.items.length) {
         this.selectedItem = this.items[0];
       }
@@ -145,10 +165,17 @@ export class AdminInventoryComponent implements OnInit, OnDestroy {
     const name = item.ingredientName || item.id;
     const confirmed = confirm(`¿Eliminar "${name}" del inventario?`);
     if (confirmed) {
-      this.inventoryService.delete(item.id);
-      if (this.selectedItem?.id === item.id) {
-        this.selectedItem = null;
-      }
+      this.inventoryService.delete(item.id).subscribe({
+        next: () => {
+          if (this.selectedItem?.id === item.id) {
+            this.selectedItem = null;
+          }
+        },
+        error: (error) => {
+          console.error('Error al eliminar item:', error);
+          alert('Error al eliminar el item. Por favor, intente nuevamente.');
+        }
+      });
     }
   }
 

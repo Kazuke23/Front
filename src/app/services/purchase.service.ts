@@ -1,7 +1,12 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { BehaviorSubject, Observable, tap, map, catchError, of } from 'rxjs';
 import { PurchaseOrder, PurchaseItem, PURCHASE_SAMPLE, PurchaseStatus, PurchaseOrderDisplay } from '../models/purchase.model';
 import { INVENTORY_RESTAURANTS, INVENTORY_SUPPLIERS, INVENTORY_INGREDIENTS, INVENTORY_UNITS } from '../models/inventory.model';
+
+import { API_CONFIG } from '../config/api.config';
+
+const API_BASE_URL = API_CONFIG.baseUrl;
 
 @Injectable({
   providedIn: 'root'
@@ -11,53 +16,135 @@ export class PurchaseService {
   private readonly purchaseSubject = new BehaviorSubject<PurchaseOrder[]>([]);
   purchase$ = this.purchaseSubject.asObservable();
 
-  constructor() {
+  constructor(private http: HttpClient) {
+    // Cargar desde localStorage como fallback mientras se conecta al backend
     this.loadFromStorage();
+    // Intentar cargar desde el backend
+    this.loadFromAPI();
   }
 
-  getAll(): PurchaseOrderDisplay[] {
+  // GET /purchases
+  getAll(): Observable<PurchaseOrderDisplay[]> {
+    return this.http.get<PurchaseOrder[]>(`${API_BASE_URL}/purchases`).pipe(
+      tap(orders => {
+        this.purchaseSubject.next(orders);
+        this.persist(); // Guardar en localStorage como cache
+      }),
+      map(orders => orders.map(order => this.enrichOrder(order))),
+      catchError(error => {
+        console.warn('Error al obtener compras del backend, usando datos locales:', error);
+        // Retornar datos locales en caso de error
+        return of(this.purchaseSubject.value.map(order => this.enrichOrder(order)));
+      })
+    );
+  }
+
+  // GET /purchases/{id}
+  getById(id: string): Observable<PurchaseOrderDisplay> {
+    return this.http.get<PurchaseOrder>(`${API_BASE_URL}/purchases/${id}`).pipe(
+      map(order => this.enrichOrder(order)),
+      catchError(error => {
+        console.warn('Error al obtener orden del backend:', error);
+        // Retornar orden local si existe
+        const localOrder = this.purchaseSubject.value.find(o => o.id === id);
+        return localOrder ? of(this.enrichOrder(localOrder)) : of(null as any);
+      })
+    );
+  }
+
+  // POST /purchases
+  create(order: Omit<PurchaseOrder, 'id'>): Observable<PurchaseOrder> {
+    return this.http.post<PurchaseOrder>(`${API_BASE_URL}/purchases`, order).pipe(
+      tap(newOrder => {
+        const updated = [newOrder, ...this.purchaseSubject.value];
+        this.purchaseSubject.next(updated);
+        this.persist();
+      }),
+      catchError(error => {
+        console.error('Error al crear orden:', error);
+        // Si falla, crear localmente como fallback
+        const newOrder: PurchaseOrder = {
+          ...order,
+          id: this.generateId()
+        };
+        const updated = [newOrder, ...this.purchaseSubject.value];
+        this.purchaseSubject.next(updated);
+        this.persist();
+        return of(newOrder);
+      })
+    );
+  }
+
+  // PUT /purchases/{id}
+  update(id: string, changes: Partial<PurchaseOrder>): Observable<PurchaseOrder> {
+    return this.http.put<PurchaseOrder>(`${API_BASE_URL}/purchases/${id}`, changes).pipe(
+      tap(updatedOrder => {
+        const orders = this.purchaseSubject.value;
+        const index = orders.findIndex(order => order.id === id);
+        if (index !== -1) {
+          const updated = [...orders];
+          updated[index] = updatedOrder;
+          this.purchaseSubject.next(updated);
+          this.persist();
+        }
+      }),
+      catchError(error => {
+        console.error('Error al actualizar orden:', error);
+        // Si falla, actualizar localmente como fallback
+        const orders = this.purchaseSubject.value;
+        const index = orders.findIndex(order => order.id === id);
+        if (index !== -1) {
+          const updatedOrder: PurchaseOrder = { ...orders[index], ...changes };
+          const updated = [...orders];
+          updated[index] = updatedOrder;
+          this.purchaseSubject.next(updated);
+          this.persist();
+          return of(updatedOrder);
+        }
+        throw error;
+      })
+    );
+  }
+
+  // DELETE /purchases/{id}
+  delete(id: string): Observable<void> {
+    return this.http.delete<void>(`${API_BASE_URL}/purchases/${id}`).pipe(
+      tap(() => {
+        const updated = this.purchaseSubject.value.filter(order => order.id !== id);
+        this.purchaseSubject.next(updated);
+        this.persist();
+      }),
+      catchError(error => {
+        console.error('Error al eliminar orden:', error);
+        // Si falla, eliminar localmente como fallback
+        const updated = this.purchaseSubject.value.filter(order => order.id !== id);
+        this.purchaseSubject.next(updated);
+        this.persist();
+        return of(void 0);
+      })
+    );
+  }
+
+  // Métodos sincronos para compatibilidad (usan el BehaviorSubject)
+  getAllSync(): PurchaseOrderDisplay[] {
     return this.purchaseSubject.value.map(order => this.enrichOrder(order));
   }
 
-  getById(id: string): PurchaseOrderDisplay | undefined {
+  getByIdSync(id: string): PurchaseOrderDisplay | undefined {
     const order = this.purchaseSubject.value.find(o => o.id === id);
     return order ? this.enrichOrder(order) : undefined;
   }
 
-  create(order: Omit<PurchaseOrder, 'id'>): PurchaseOrder {
-    const newOrder: PurchaseOrder = {
-      ...order,
-      id: this.generateId()
-    };
-
-    const updated = [newOrder, ...this.purchaseSubject.value];
-    this.purchaseSubject.next(updated);
-    this.persist();
-    return newOrder;
-  }
-
-  update(id: string, changes: Partial<PurchaseOrder>): void {
-    const orders = this.purchaseSubject.value;
-    const index = orders.findIndex(order => order.id === id);
-    if (index === -1) {
-      throw new Error('Orden no encontrada');
-    }
-
-    const updatedOrder: PurchaseOrder = {
-      ...orders[index],
-      ...changes
-    };
-
-    const updated = [...orders];
-    updated[index] = updatedOrder;
-    this.purchaseSubject.next(updated);
-    this.persist();
-  }
-
-  delete(id: string): void {
-    const updated = this.purchaseSubject.value.filter(order => order.id !== id);
-    this.purchaseSubject.next(updated);
-    this.persist();
+  private loadFromAPI(): void {
+    this.getAll().subscribe({
+      next: (orders) => {
+        // Las órdenes ya se actualizaron en el BehaviorSubject
+      },
+      error: (error) => {
+        console.warn('No se pudo conectar al backend, usando datos locales:', error);
+        // Si falla, usar datos de localStorage (ya cargados en constructor)
+      }
+    });
   }
 
   calculateTotal(items: PurchaseItem[]): number {

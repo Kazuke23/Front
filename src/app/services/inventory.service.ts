@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { BehaviorSubject, Observable, tap, map, catchError, of } from 'rxjs';
 import {
   InventoryItem,
   InventoryItemDisplay,
@@ -14,6 +15,10 @@ import {
   InventorySupplier
 } from '../models/inventory.model';
 
+import { API_CONFIG } from '../config/api.config';
+
+const API_BASE_URL = API_CONFIG.baseUrl;
+
 @Injectable({
   providedIn: 'root'
 })
@@ -22,54 +27,135 @@ export class InventoryService {
   private readonly inventorySubject = new BehaviorSubject<InventoryItem[]>([]);
   inventory$ = this.inventorySubject.asObservable();
 
-  constructor() {
+  constructor(private http: HttpClient) {
+    // Cargar desde localStorage como fallback mientras se conecta al backend
     this.loadFromStorage();
+    // Intentar cargar desde el backend
+    this.loadFromAPI();
   }
 
-  getAll(): InventoryItemDisplay[] {
+  // GET /inventory
+  getAll(): Observable<InventoryItemDisplay[]> {
+    return this.http.get<InventoryItem[]>(`${API_BASE_URL}/inventory`).pipe(
+      tap(items => {
+        this.inventorySubject.next(items);
+        this.persist(); // Guardar en localStorage como cache
+      }),
+      map(items => items.map(item => this.enrichItem(item))),
+      catchError(error => {
+        console.warn('Error al obtener inventario del backend, usando datos locales:', error);
+        // Retornar datos locales en caso de error
+        return of(this.inventorySubject.value.map(item => this.enrichItem(item)));
+      })
+    );
+  }
+
+  // GET /inventory/{id}
+  getById(id: string): Observable<InventoryItemDisplay> {
+    return this.http.get<InventoryItem>(`${API_BASE_URL}/inventory/${id}`).pipe(
+      map(item => this.enrichItem(item)),
+      catchError(error => {
+        console.warn('Error al obtener item del backend:', error);
+        // Retornar item local si existe
+        const localItem = this.inventorySubject.value.find(i => i.id === id);
+        return localItem ? of(this.enrichItem(localItem)) : of(null as any);
+      })
+    );
+  }
+
+  // POST /inventory
+  create(item: Omit<InventoryItem, 'id'>): Observable<InventoryItem> {
+    return this.http.post<InventoryItem>(`${API_BASE_URL}/inventory`, item).pipe(
+      tap(newItem => {
+        const updated = [newItem, ...this.inventorySubject.value];
+        this.inventorySubject.next(updated);
+        this.persist();
+      }),
+      catchError(error => {
+        console.error('Error al crear item:', error);
+        // Si falla, crear localmente como fallback
+        const newItem: InventoryItem = {
+          ...item,
+          id: this.generateId()
+        };
+        const updated = [newItem, ...this.inventorySubject.value];
+        this.inventorySubject.next(updated);
+        this.persist();
+        return of(newItem);
+      })
+    );
+  }
+
+  // PUT /inventory/{id} - Solo se puede actualizar la cantidad
+  updateQuantity(id: string, quantity: number): Observable<InventoryItem> {
+    return this.http.put<InventoryItem>(`${API_BASE_URL}/inventory/${id}`, { quantity }).pipe(
+      tap(updatedItem => {
+        const items = this.inventorySubject.value;
+        const index = items.findIndex(item => item.id === id);
+        if (index !== -1) {
+          const updated = [...items];
+          updated[index] = updatedItem;
+          this.inventorySubject.next(updated);
+          this.persist();
+        }
+      }),
+      catchError(error => {
+        console.error('Error al actualizar item:', error);
+        // Si falla, actualizar localmente como fallback
+        const items = this.inventorySubject.value;
+        const index = items.findIndex(item => item.id === id);
+        if (index !== -1) {
+          const updatedItem: InventoryItem = { ...items[index], quantity };
+          const updated = [...items];
+          updated[index] = updatedItem;
+          this.inventorySubject.next(updated);
+          this.persist();
+          return of(updatedItem);
+        }
+        throw error;
+      })
+    );
+  }
+
+  // DELETE /inventory/{id}
+  delete(id: string): Observable<void> {
+    return this.http.delete<void>(`${API_BASE_URL}/inventory/${id}`).pipe(
+      tap(() => {
+        const updated = this.inventorySubject.value.filter(item => item.id !== id);
+        this.inventorySubject.next(updated);
+        this.persist();
+      }),
+      catchError(error => {
+        console.error('Error al eliminar item:', error);
+        // Si falla, eliminar localmente como fallback
+        const updated = this.inventorySubject.value.filter(item => item.id !== id);
+        this.inventorySubject.next(updated);
+        this.persist();
+        return of(void 0);
+      })
+    );
+  }
+
+  // Métodos sincronos para compatibilidad (usan el BehaviorSubject)
+  getAllSync(): InventoryItemDisplay[] {
     return this.inventorySubject.value.map(item => this.enrichItem(item));
   }
 
-  getById(id: string): InventoryItemDisplay | undefined {
+  getByIdSync(id: string): InventoryItemDisplay | undefined {
     const item = this.inventorySubject.value.find(i => i.id === id);
     return item ? this.enrichItem(item) : undefined;
   }
 
-  create(item: Omit<InventoryItem, 'id'>): InventoryItem {
-    const newItem: InventoryItem = {
-      ...item,
-      id: this.generateId()
-    };
-
-    const updated = [newItem, ...this.inventorySubject.value];
-    this.inventorySubject.next(updated);
-    this.persist();
-    return newItem;
-  }
-
-  // Solo se puede actualizar la cantidad según el endpoint PUT /inventory/{id}
-  updateQuantity(id: string, quantity: number): void {
-    const items = this.inventorySubject.value;
-    const index = items.findIndex(item => item.id === id);
-    if (index === -1) {
-      throw new Error('Item no encontrado');
-    }
-
-    const updatedItem: InventoryItem = {
-      ...items[index],
-      quantity
-    };
-
-    const updated = [...items];
-    updated[index] = updatedItem;
-    this.inventorySubject.next(updated);
-    this.persist();
-  }
-
-  delete(id: string): void {
-    const updated = this.inventorySubject.value.filter(item => item.id !== id);
-    this.inventorySubject.next(updated);
-    this.persist();
+  private loadFromAPI(): void {
+    this.getAll().subscribe({
+      next: (items) => {
+        // Los items ya se actualizaron en el BehaviorSubject
+      },
+      error: (error) => {
+        console.warn('No se pudo conectar al backend, usando datos locales:', error);
+        // Si falla, usar datos de localStorage (ya cargados en constructor)
+      }
+    });
   }
 
   getCategories(): string[] {

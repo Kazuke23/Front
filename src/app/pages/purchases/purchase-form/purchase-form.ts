@@ -174,12 +174,26 @@ export class PurchaseFormComponent implements OnInit, OnDestroy {
     };
 
     if (this.isEditMode && this.currentOrder) {
-      this.purchaseService.update(this.currentOrder.id, payload);
+      this.purchaseService.update(this.currentOrder.id, payload).subscribe({
+        next: () => {
+          this.router.navigate(['/compras']);
+        },
+        error: (error) => {
+          console.error('Error al actualizar orden:', error);
+          alert('Error al actualizar la orden. Por favor, intente nuevamente.');
+        }
+      });
     } else {
-      this.purchaseService.create(payload);
+      this.purchaseService.create(payload).subscribe({
+        next: () => {
+          this.router.navigate(['/compras']);
+        },
+        error: (error) => {
+          console.error('Error al crear orden:', error);
+          alert('Error al crear la orden. Por favor, intente nuevamente.');
+        }
+      });
     }
-
-    this.router.navigate(['/compras']);
   }
 
   cancel(): void {

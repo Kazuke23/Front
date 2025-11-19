@@ -86,7 +86,15 @@ export class InventoryFormComponent implements OnInit {
 
     if (this.isEditMode && this.currentItem) {
       // Solo se puede actualizar la cantidad según el endpoint PUT /inventory/{id}
-      this.inventoryService.updateQuantity(this.currentItem.id, Number(value.quantity));
+      this.inventoryService.updateQuantity(this.currentItem.id, Number(value.quantity)).subscribe({
+        next: () => {
+          this.router.navigate(['/inventario/admin']);
+        },
+        error: (error) => {
+          console.error('Error al actualizar item:', error);
+          alert('Error al actualizar el item. Por favor, intente nuevamente.');
+        }
+      });
     } else {
       const payload: Omit<InventoryItem, 'id'> = {
         restaurant_id: value.restaurant_id,
@@ -94,10 +102,16 @@ export class InventoryFormComponent implements OnInit {
         unit_id: value.unit_id,
         quantity: Number(value.quantity)
       };
-      this.inventoryService.create(payload);
+      this.inventoryService.create(payload).subscribe({
+        next: () => {
+          this.router.navigate(['/inventario/admin']);
+        },
+        error: (error) => {
+          console.error('Error al crear item:', error);
+          alert('Error al crear el item. Por favor, intente nuevamente.');
+        }
+      });
     }
-
-    this.router.navigate(['/inventario/admin']);
   }
 
   cancel(): void {

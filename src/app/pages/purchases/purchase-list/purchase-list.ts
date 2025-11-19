@@ -52,8 +52,28 @@ export class PurchaseListComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    this.subscription = this.purchaseService.purchase$.subscribe(orders => {
-      this.orders = this.purchaseService.getAll();
+    // Cargar datos del backend al iniciar
+    this.purchaseService.getAll().subscribe({
+      next: (orders) => {
+        this.orders = orders;
+        if (!this.selectedOrder && this.orders.length) {
+          this.selectedOrder = this.orders[0];
+        }
+        this.refreshData();
+      },
+      error: () => {
+        // Si falla, usar datos locales
+        this.orders = this.purchaseService.getAllSync();
+        if (!this.selectedOrder && this.orders.length) {
+          this.selectedOrder = this.orders[0];
+        }
+        this.refreshData();
+      }
+    });
+
+    // Suscribirse a cambios en el BehaviorSubject
+    this.subscription = this.purchaseService.purchase$.subscribe(() => {
+      this.orders = this.purchaseService.getAllSync();
       if (!this.selectedOrder && this.orders.length) {
         this.selectedOrder = this.orders[0];
       }
@@ -141,7 +161,17 @@ export class PurchaseListComponent implements OnInit, OnDestroy {
     event.stopPropagation();
     const confirmed = confirm(`¿Eliminar la orden "${order.id}"?`);
     if (confirmed) {
-      this.purchaseService.delete(order.id);
+      this.purchaseService.delete(order.id).subscribe({
+        next: () => {
+          if (this.selectedOrder?.id === order.id) {
+            this.selectedOrder = null;
+          }
+        },
+        error: (error) => {
+          console.error('Error al eliminar orden:', error);
+          alert('Error al eliminar la orden. Por favor, intente nuevamente.');
+        }
+      });
       if (this.selectedOrder?.id === order.id) {
         this.selectedOrder = null;
       }
