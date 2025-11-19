@@ -1,12 +1,12 @@
 :host {
   display: block;
   padding: 32px;
-  background: radial-gradient(circle at top, rgba(233, 30, 99, 0.08), transparent 55%), #f8fafc;
+  background: radial-gradient(circle at top, rgba(249, 115, 22, 0.08), transparent 55%), #f8fafc;
   min-height: 100vh;
   animation: fadeIn 0.6s ease;
 }
 
-.inventory-admin-page {
+.inventory-chef-page {
   max-width: 1400px;
   margin: 0 auto;
   display: flex;
@@ -30,7 +30,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(125deg, rgba(233, 30, 99, 0.08), transparent 60%);
+  background: linear-gradient(125deg, rgba(249, 115, 22, 0.08), transparent 60%);
   pointer-events: none;
 }
 
@@ -121,14 +121,14 @@
 
 .stat-card:hover {
   transform: translateY(-6px);
-  box-shadow: 0 30px 60px rgba(233, 30, 99, 0.15);
+  box-shadow: 0 30px 60px rgba(249, 115, 22, 0.15);
 }
 
 .stat-icon {
   width: 48px;
   height: 48px;
   border-radius: 16px;
-  background: linear-gradient(135deg, #ec4899, #f472b6);
+  background: linear-gradient(135deg, #f97316, #fb923c);
   display: grid;
   place-items: center;
   font-size: 1.5rem;
@@ -194,8 +194,8 @@
 
 .search-group input:focus {
   outline: none;
-  border-color: #ec4899;
-  box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.15);
+  border-color: #f97316;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.15);
 }
 
 .search-icon {
@@ -250,11 +250,11 @@ tbody tr {
 }
 
 tbody tr:hover {
-  background: rgba(236, 72, 153, 0.05);
+  background: rgba(249, 115, 22, 0.05);
 }
 
 tbody tr.selected {
-  background: rgba(236, 72, 153, 0.12);
+  background: rgba(249, 115, 22, 0.12);
 }
 
 td {
@@ -272,8 +272,8 @@ td {
   width: 46px;
   height: 46px;
   border-radius: 14px;
-  background: #fee2e2;
-  color: #b91c1c;
+  background: #fed7aa;
+  color: #c2410c;
   display: grid;
   place-items: center;
   font-weight: 700;
@@ -310,7 +310,7 @@ td {
 .ingredient-chip small {
   text-transform: uppercase;
   font-size: 0.75rem;
-  color: #ec4899;
+  color: #f97316;
 }
 
 .quantity {
@@ -329,7 +329,7 @@ td {
 
 .progress {
   height: 100%;
-  background: linear-gradient(135deg, #ec4899, #f97316);
+  background: linear-gradient(135deg, #f97316, #fb923c);
   border-radius: inherit;
   transition: width 0.4s ease;
 }
@@ -396,11 +396,6 @@ td {
   color: #b91c1c;
 }
 
-.actions {
-  display: flex;
-  gap: 6px;
-}
-
 button {
   border: none;
   cursor: pointer;
@@ -412,9 +407,9 @@ button {
 }
 
 button.primary {
-  background: linear-gradient(135deg, #ec4899, #ef4444);
+  background: linear-gradient(135deg, #f97316, #fb923c);
   color: white;
-  box-shadow: 0 15px 30px rgba(236, 72, 153, 0.3);
+  box-shadow: 0 15px 30px rgba(249, 115, 22, 0.3);
 }
 
 button.primary:hover {
@@ -424,15 +419,6 @@ button.primary:hover {
 button.ghost {
   background: rgba(15, 23, 42, 0.05);
   color: #111827;
-}
-
-button.ghosty {
-  background: rgba(236, 72, 153, 0.1);
-  color: #db2777;
-}
-
-button.danger {
-  color: #b91c1c;
 }
 
 .empty-state {
@@ -498,12 +484,6 @@ button.danger {
   padding: 16px;
 }
 
-.detail-actions {
-  display: flex;
-  gap: 12px;
-  margin-top: 8px;
-}
-
 .timeline-card {
   background: white;
   border-radius: 24px;
@@ -537,7 +517,7 @@ button.danger {
   text-transform: uppercase;
   letter-spacing: 0.12em;
   font-size: 0.7rem;
-  color: #ec4899;
+  color: #f97316;
   font-weight: 700;
 }
 

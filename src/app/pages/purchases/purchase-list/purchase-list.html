@@ -1,0 +1,178 @@
+<div class="purchase-list-page">
+  <div class="page-header">
+    <div class="header-content">
+      <div class="header-badge">
+        <span class="badge-icon">🛒</span>
+        <span>Gestión de Compras</span>
+      </div>
+      <h1>Panel de Administración de Compras</h1>
+      <p>Supervise y administre todos los pedidos de compra, los proveedores y el estado de entrega en un solo lugar.</p>
+    </div>
+    <div class="header-image">
+      <img src="https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=800&q=80" alt="Compras" />
+    </div>
+  </div>
+
+  <div class="actions-bar">
+    <div class="search-container">
+      <div class="search-wrapper">
+        <span class="search-icon">🔍</span>
+        <input
+          type="text"
+          placeholder="Buscar por ID, proveedor o restaurante..."
+          [(ngModel)]="searchTerm"
+          (ngModelChange)="onFiltersChange()"
+          class="search-input"
+        />
+      </div>
+    </div>
+    <button class="create-btn" (click)="goToCreate()">
+      <span class="btn-icon">+</span>
+      <span>Crear Compra</span>
+    </button>
+  </div>
+
+  <div class="table-wrapper">
+    <div class="table-header-info">
+      <div class="info-left">
+        <span class="info-badge">📊</span>
+        <span>Mostrando {{ getPaginatedOrders().length }} de {{ filteredOrders.length }} pedidos</span>
+      </div>
+      <div class="info-right">
+        <span class="total-info">Total: <strong>${{ stats.totalAmount | number:'1.2-2' }}</strong></span>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <table class="purchase-table">
+        <thead>
+          <tr>
+            <th class="col-order-id">
+              <span class="th-icon">🆔</span>
+              ID de Pedido
+            </th>
+            <th class="col-date">
+              <span class="th-icon">📅</span>
+              Fecha de Pedido
+            </th>
+            <th class="col-supplier">
+              <span class="th-icon">🚚</span>
+              Proveedor
+            </th>
+            <th class="col-restaurant">
+              <span class="th-icon">🏢</span>
+              Restaurante
+            </th>
+            <th class="col-amount">
+              <span class="th-icon">💰</span>
+              Monto Total
+            </th>
+            <th class="col-status">
+              <span class="th-icon">⚡</span>
+              Estado
+            </th>
+            <th class="col-actions">
+              <span class="th-icon">⚙️</span>
+              Acciones
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            *ngFor="let order of getPaginatedOrders(); trackBy: trackById"
+            [class.selected]="selectedOrder?.id === order.id"
+            (click)="selectOrder(order)"
+            class="table-row"
+          >
+            <td class="order-id-cell">
+              <div class="order-id-wrapper">
+                <span class="order-id-badge">{{ order.orderId }}</span>
+                <span class="items-count">{{ order.items.length }} ítem(s)</span>
+              </div>
+            </td>
+            <td class="date-cell">
+              <div class="date-wrapper">
+                <span class="date-main">{{ formatDate(order.fechaPedido) }}</span>
+                <span class="date-label" *ngIf="order.fechaEntrega">
+                  Entrega: {{ formatDate(order.fechaEntrega) }}
+                </span>
+              </div>
+            </td>
+            <td class="supplier-cell">
+              <div class="supplier-wrapper">
+                <span class="supplier-icon">🚚</span>
+                <span class="supplier-name">{{ order.supplierName }}</span>
+              </div>
+            </td>
+            <td class="restaurant-cell">
+              <div class="restaurant-wrapper">
+                <span class="restaurant-icon">🏢</span>
+                <span class="restaurant-name">{{ order.restaurantName }}</span>
+              </div>
+            </td>
+            <td class="amount-cell">
+              <div class="amount-wrapper">
+                <span class="currency-symbol">$</span>
+                <span class="amount-value">{{ order.montoTotal | number:'1.2-2' }}</span>
+              </div>
+            </td>
+            <td class="status-cell">
+              <span class="status-badge" [ngClass]="getStatusClass(order.status)">
+                <span class="status-dot"></span>
+                {{ order.status }}
+              </span>
+            </td>
+            <td class="actions-cell" (click)="$event.stopPropagation()">
+              <div class="actions-wrapper">
+                <button class="action-btn edit-btn" (click)="editOrder(order, $event)" title="Editar pedido">
+                  <span class="action-icon">✏️</span>
+                  <span class="action-text">Editar</span>
+                </button>
+                <button class="action-btn delete-btn" (click)="deleteOrder(order, $event)" title="Eliminar pedido">
+                  <span class="action-icon">🗑️</span>
+                  <span class="action-text">Eliminar</span>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="empty-state" *ngIf="filteredOrders.length === 0">
+        <div class="empty-icon">📦</div>
+        <h3>No se encontraron pedidos</h3>
+        <p>Intenta ajustar los filtros de búsqueda o crea un nuevo pedido.</p>
+        <button class="create-btn" (click)="goToCreate()">
+          <span class="btn-icon">+</span>
+          <span>Crear Primer Pedido</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="pagination" *ngIf="getTotalPages() > 1">
+      <div class="pagination-info">
+        <span>Página {{ currentPage }} de {{ getTotalPages() }}</span>
+      </div>
+      <div class="pagination-controls">
+        <button class="page-btn prev-btn" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 1">
+          <span>←</span>
+          <span>Anterior</span>
+        </button>
+        <div class="page-numbers">
+          <button
+            *ngFor="let page of [].constructor(getTotalPages()); let i = index"
+            class="page-number"
+            [class.active]="currentPage === i + 1"
+            (click)="goToPage(i + 1)"
+          >
+            {{ i + 1 }}
+          </button>
+        </div>
+        <button class="page-btn next-btn" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === getTotalPages()">
+          <span>Siguiente</span>
+          <span>→</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -60,6 +60,12 @@ export const routes: Routes = [
     canActivate: [AuthGuard, RoleGuard],
     data: { roles: ['Administrador'] }
   },
+  {
+    path: 'inventario/chef',
+    loadComponent: () => import('./pages/inventory/chef-inventory/chef-inventory').then(m => m.ChefInventoryComponent),
+    canActivate: [AuthGuard, RoleGuard],
+    data: { roles: ['Chef'] }
+  },
   
   { 
     path: 'formulario', 
@@ -93,6 +99,16 @@ export const routes: Routes = [
       { path: '', loadComponent: () => import('./pages/proveedores/proveedor-list/proveedor-list').then(m => m.ProveedorListComponent) },
       { path: 'create', loadComponent: () => import('./pages/proveedores/proveedor-create/proveedor-create').then(m => m.ProveedorCreateComponent) },
       { path: 'edit/:id', loadComponent: () => import('./pages/proveedores/proveedor-create/proveedor-create').then(m => m.ProveedorCreateComponent) }
+    ],
+    canActivate: [AuthGuard, RoleGuard],
+    data: { roles: ['Administrador'] } // Solo administradores
+  },
+  {
+    path: 'compras',
+    children: [
+      { path: '', loadComponent: () => import('./pages/purchases/purchase-list/purchase-list').then(m => m.PurchaseListComponent) },
+      { path: 'create', loadComponent: () => import('./pages/purchases/purchase-form/purchase-form').then(m => m.PurchaseFormComponent) },
+      { path: 'edit/:id', loadComponent: () => import('./pages/purchases/purchase-form/purchase-form').then(m => m.PurchaseFormComponent) }
     ],
     canActivate: [AuthGuard, RoleGuard],
     data: { roles: ['Administrador'] } // Solo administradores

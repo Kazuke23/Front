@@ -1,7 +1,6 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { InventoryService } from '../../../services/inventory.service';
 import { InventoryItem, InventoryRestaurant } from '../../../models/inventory.model';
@@ -14,13 +13,13 @@ interface StatCard {
 }
 
 @Component({
-  selector: 'app-admin-inventory',
+  selector: 'app-chef-inventory',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './admin-inventory.html',
-  styleUrls: ['./admin-inventory.css']
+  templateUrl: './chef-inventory.html',
+  styleUrls: ['./chef-inventory.css']
 })
-export class AdminInventoryComponent implements OnInit, OnDestroy {
+export class ChefInventoryComponent implements OnInit, OnDestroy {
   items: InventoryItem[] = [];
   filteredItems: InventoryItem[] = [];
   recentItems: InventoryItem[] = [];
@@ -46,8 +45,7 @@ export class AdminInventoryComponent implements OnInit, OnDestroy {
   private subscription?: Subscription;
 
   constructor(
-    private inventoryService: InventoryService,
-    private router: Router
+    private inventoryService: InventoryService
   ) {
     this.restaurants = this.inventoryService.getRestaurants();
   }
@@ -74,7 +72,7 @@ export class AdminInventoryComponent implements OnInit, OnDestroy {
     this.recentItems = this.items.slice(0, 4);
     this.statCards = [
       {
-        label: 'Artículos activos',
+        label: 'Artículos disponibles',
         value: this.stats.totalItems.toString(),
         icon: '📦',
         trend: 4
@@ -92,13 +90,13 @@ export class AdminInventoryComponent implements OnInit, OnDestroy {
         trend: -3
       },
       {
-        label: 'Categorías cubiertas',
+        label: 'Categorías disponibles',
         value: this.stats.categories.toString(),
         icon: '🏷️',
         trend: 2
       },
       {
-        label: 'Sedes con stock',
+        label: 'Sedes activas',
         value: this.stats.restaurants.toString(),
         icon: '🏢',
         trend: 1
@@ -133,30 +131,6 @@ export class AdminInventoryComponent implements OnInit, OnDestroy {
 
   selectItem(item: InventoryItem): void {
     this.selectedItem = item;
-  }
-
-  goToCreate(): void {
-    this.router.navigate(['/inventario/admin/create']);
-  }
-
-  goToEdit(id: string): void {
-    this.router.navigate(['/inventario/admin/edit', id]);
-  }
-
-  editItem(item: InventoryItem, event: MouseEvent): void {
-    event.stopPropagation();
-    this.goToEdit(item.id);
-  }
-
-  deleteItem(item: InventoryItem, event: MouseEvent): void {
-    event.stopPropagation();
-    const confirmed = confirm(`¿Eliminar "${item.nombre}" del inventario?`);
-    if (confirmed) {
-      this.inventoryService.delete(item.id);
-      if (this.selectedItem?.id === item.id) {
-        this.selectedItem = null;
-      }
-    }
   }
 
   formatDate(date?: Date | null): string {

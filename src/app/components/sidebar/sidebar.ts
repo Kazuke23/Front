@@ -488,7 +488,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
       label: 'Inventario',
       icon: '📦',
       route: '/inventario/admin',
-      roles: ['Administrador']
+      roles: ['Administrador', 'Chef']
     },
     {
       id: 'planificacion',
@@ -517,6 +517,13 @@ export class SidebarComponent implements OnInit, OnDestroy {
       icon: '🚚',
       route: '/proveedores',
       roles: ['Administrador']
+    },
+    {
+      id: 'compras',
+      label: 'Compras',
+      icon: '🛒',
+      route: '/compras',
+      roles: ['Administrador']
     }
   ];
 
@@ -542,9 +549,19 @@ export class SidebarComponent implements OnInit, OnDestroy {
   get visibleItems(): SidebarItem[] {
     if (!this.currentUser) return [];
     
-    return this.sidebarItems.filter(item => 
-      item.roles.includes(this.currentUser!.rol)
-    );
+    return this.sidebarItems
+      .filter(item => item.roles.includes(this.currentUser!.rol))
+      .map(item => {
+        // Ajustar ruta de inventario según el rol
+        if (item.id === 'inventario') {
+          if (this.currentUser!.rol === 'Chef') {
+            return { ...item, route: '/inventario/chef' };
+          } else if (this.currentUser!.rol === 'Administrador') {
+            return { ...item, route: '/inventario/admin' };
+          }
+        }
+        return item;
+      });
   }
 
   toggleSidebar(): void {

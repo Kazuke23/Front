@@ -21,6 +21,29 @@
       <article class="form-card">
         <h2>Datos principales</h2>
         <div class="fields-grid">
+          <label [class]="getFieldClass('restaurantId')">
+            <span>Sede operativa *</span>
+            <select formControlName="restaurantId">
+              <option *ngFor="let restaurant of restaurants" [value]="restaurant.id">
+                {{ restaurant.name }} · {{ restaurant.city }}
+              </option>
+            </select>
+          </label>
+
+          <label [class]="getFieldClass('ingredientId')">
+            <span>Ingrediente base *</span>
+            <select formControlName="ingredientId">
+              <option *ngFor="let ingredient of ingredients" [value]="ingredient.id">
+                {{ ingredient.name }}
+              </option>
+            </select>
+          </label>
+
+          <label [class]="getFieldClass('inventoryId')">
+            <span>Código de inventario</span>
+            <input type="text" placeholder="Se genera automáticamente" formControlName="inventoryId" />
+          </label>
+
           <label [class]="getFieldClass('nombre')">
             <span>Nombre del artículo *</span>
             <input type="text" placeholder="Ej. Tomate Roma" formControlName="nombre" />
@@ -39,12 +62,14 @@
             <input type="number" min="0" formControlName="cantidad" />
           </label>
 
-          <label [class]="getFieldClass('unidad')">
+          <label [class]="getFieldClass('unitId')">
             <span>Unidad *</span>
-            <select formControlName="unidad">
-              <option *ngFor="let unidad of unidades" [value]="unidad">{{ unidad }}</option>
+            <select formControlName="unitId">
+              <option *ngFor="let unit of units" [value]="unit.id">{{ unit.code }} · {{ unit.description }}</option>
             </select>
           </label>
+
+          <input type="hidden" formControlName="unidad" />
 
           <label>
             <span>Descripción</span>
@@ -61,9 +86,11 @@
       <article class="form-card">
         <h2>Control operativo</h2>
         <div class="fields-grid">
-          <label [class]="getFieldClass('proveedor')">
+          <label [class]="getFieldClass('supplierId')">
             <span>Proveedor *</span>
-            <input type="text" placeholder="Ej. Finca Verde" formControlName="proveedor" />
+            <select formControlName="supplierId">
+              <option *ngFor="let supplier of suppliers" [value]="supplier.id">{{ supplier.name }}</option>
+            </select>
           </label>
 
           <label [class]="getFieldClass('nivelReorden')">
