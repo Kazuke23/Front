@@ -1,87 +1,208 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
-import { Restaurant, SAMPLE_RESTAURANTS } from '../models/restaurant.model';
+import { HttpClient } from '@angular/common/http';
+import { BehaviorSubject, Observable, tap, catchError, of, map } from 'rxjs';
+import { Restaurant } from '../models/restaurant.model';
+import { API_CONFIG } from '../config/api.config';
+
+interface ApiRestaurant {
+  id: string;
+  name: string;
+  nit: string;
+  city: string;
+  country: string;
+  address?: string;
+}
+
+interface CreateRestaurantRequest {
+  name: string;
+  nit: string;
+  city: string;
+  country: string;
+}
+
+interface UpdateRestaurantRequest {
+  address: string;
+}
+
+interface AssignUserRequest {
+  user_id: string;
+  role_id: string;
+}
 
 @Injectable({
   providedIn: 'root'
 })
 export class RestaurantService {
-  private restaurantsSubject = new BehaviorSubject<Restaurant[]>([...SAMPLE_RESTAURANTS]);
+  private readonly apiUrl = `${API_CONFIG.baseUrl}/restaurants`;
+  private restaurantsSubject = new BehaviorSubject<Restaurant[]>([]);
   public restaurants$: Observable<Restaurant[]> = this.restaurantsSubject.asObservable();
 
-  constructor() {
-    // Cargar restaurantes desde localStorage si existen
-    this.loadFromLocalStorage();
+  constructor(private http: HttpClient) {
+    this.loadRestaurants();
   }
 
+  /**
+   * Cargar restaurantes desde la API
+   */
+  private loadRestaurants(): void {
+    this.http.get<ApiRestaurant[]>(this.apiUrl).pipe(
+      map(apiRestaurants => apiRestaurants.map(api => this.apiToRestaurant(api))),
+      catchError(error => {
+        console.warn('Error al cargar restaurantes desde API:', error);
+        return of([]);
+      })
+    ).subscribe(restaurants => {
+      this.restaurantsSubject.next(restaurants);
+    });
+  }
+
+  /**
+   * Convertir ApiRestaurant a Restaurant
+   */
+  private apiToRestaurant(api: ApiRestaurant): Restaurant {
+    return {
+      id: api.id,
+      name: api.name,
+      address: api.address || '',
+      phone: '',
+      email: '',
+      cuisine: '',
+      rating: 0,
+      capacity: 0,
+      isActive: true,
+      description: '',
+      openingHours: '',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+  }
+
+  /**
+   * GET /restaurants - Listar restaurantes
+   */
   getRestaurants(): Restaurant[] {
     return this.restaurantsSubject.value;
   }
 
-  getActiveRestaurants(): Restaurant[] {
-    return this.restaurantsSubject.value.filter(r => r.isActive);
+  /**
+   * GET /restaurants - Listar restaurantes (Observable)
+   */
+  getRestaurantsObservable(): Observable<Restaurant[]> {
+    return this.http.get<ApiRestaurant[]>(this.apiUrl).pipe(
+      map(apiRestaurants => apiRestaurants.map(api => this.apiToRestaurant(api))),
+      tap(restaurants => {
+        this.restaurantsSubject.next(restaurants);
+      }),
+      catchError(error => {
+        console.error('Error al obtener restaurantes:', error);
+        return of(this.restaurantsSubject.value);
+      })
+    );
   }
 
-  getRestaurantById(id: string): Restaurant | undefined {
+  /**
+   * GET /restaurants/{id} - Obtener restaurante por ID
+   */
+  getRestaurantByIdSync(id: string): Restaurant | undefined {
     return this.restaurantsSubject.value.find(r => r.id === id);
   }
 
+  /**
+   * GET /restaurants/{id} - Obtener restaurante por ID (Observable)
+   */
+  getRestaurantById(id: string): Observable<Restaurant> {
+    return this.http.get<ApiRestaurant>(`${this.apiUrl}/${id}`).pipe(
+      map(api => this.apiToRestaurant(api)),
+      catchError(error => {
+        console.error('Error al obtener restaurante:', error);
+        const local = this.restaurantsSubject.value.find(r => r.id === id);
+        return local ? of(local) : of(null as any);
+      })
+    );
+  }
+
+  /**
+   * GET /restaurants - Obtener restaurantes activos
+   */
+  getActiveRestaurants(): Restaurant[] {
+    return this.restaurantsSubject.value.filter(r => r.isActive !== false);
+  }
+
+  /**
+   * POST /restaurants - Crear restaurante (HU-01)
+   */
   addRestaurant(restaurant: Restaurant): void {
-    const restaurants = this.restaurantsSubject.value;
-    restaurants.unshift(restaurant);
-    this.restaurantsSubject.next([...restaurants]);
-    this.saveToLocalStorage();
+    const createRequest: CreateRestaurantRequest = {
+      name: restaurant.name,
+      nit: '',
+      city: '',
+      country: ''
+    };
+
+    this.http.post<ApiRestaurant>(this.apiUrl, createRequest).pipe(
+      map(api => this.apiToRestaurant(api)),
+      tap(newRestaurant => {
+        const restaurants = [newRestaurant, ...this.restaurantsSubject.value];
+        this.restaurantsSubject.next(restaurants);
+      }),
+      catchError(error => {
+        console.error('Error al crear restaurante en API, guardando localmente:', error);
+        // Fallback: guardar localmente
+        const restaurants = [restaurant, ...this.restaurantsSubject.value];
+        this.restaurantsSubject.next(restaurants);
+        return of(restaurant);
+      })
+    ).subscribe();
   }
 
+  /**
+   * PUT /restaurants/{id} - Editar restaurante (HU-02)
+   */
   updateRestaurant(id: string, restaurant: Partial<Restaurant>): void {
-    const restaurants = this.restaurantsSubject.value;
-    const index = restaurants.findIndex(r => r.id === id);
-    if (index !== -1) {
-      restaurants[index] = { ...restaurants[index], ...restaurant, updatedAt: new Date() };
-      this.restaurantsSubject.next([...restaurants]);
-      this.saveToLocalStorage();
-    }
+    const updateRequest: UpdateRestaurantRequest = {
+      address: restaurant.address || ''
+    };
+
+    this.http.put<ApiRestaurant>(`${this.apiUrl}/${id}`, updateRequest).pipe(
+      map(api => this.apiToRestaurant(api)),
+      tap(updated => {
+        const restaurants = this.restaurantsSubject.value.map(r => 
+          r.id === id ? { ...r, ...updated, ...restaurant } : r
+        );
+        this.restaurantsSubject.next(restaurants);
+      }),
+      catchError(error => {
+        console.error('Error al actualizar restaurante en API, actualizando localmente:', error);
+        // Fallback: actualizar localmente
+        const restaurants = this.restaurantsSubject.value.map(r => 
+          r.id === id ? { ...r, ...restaurant, updatedAt: new Date() } : r
+        );
+        this.restaurantsSubject.next(restaurants);
+        return of(restaurant as Restaurant);
+      })
+    ).subscribe();
   }
 
+  /**
+   * Eliminar restaurante (no hay endpoint en la API, solo local)
+   */
   deleteRestaurant(id: string): void {
     const restaurants = this.restaurantsSubject.value.filter(r => r.id !== id);
-    this.restaurantsSubject.next([...restaurants]);
-    this.saveToLocalStorage();
+    this.restaurantsSubject.next(restaurants);
   }
 
-  private saveToLocalStorage(): void {
-    try {
-      const restaurants = this.restaurantsSubject.value;
-      localStorage.setItem('restaurants', JSON.stringify(restaurants));
-    } catch (error) {
-      console.error('Error saving restaurants to localStorage:', error);
-    }
+  /**
+   * POST /restaurants/{id}/assign-user - Asignar usuario a restaurante (HU-05)
+   */
+  assignUser(restaurantId: string, data: AssignUserRequest): Observable<any> {
+    return this.http.post(`${this.apiUrl}/${restaurantId}/assign-user`, data);
   }
 
-  private loadFromLocalStorage(): void {
-    try {
-      const stored = localStorage.getItem('restaurants');
-      if (stored) {
-        const restaurants = JSON.parse(stored);
-        // Si hay restaurantes guardados y no están vacíos, usarlos
-        if (restaurants && restaurants.length > 0) {
-          // Convertir fechas de string a Date
-          restaurants.forEach((r: any) => {
-            r.createdAt = new Date(r.createdAt);
-            r.updatedAt = new Date(r.updatedAt);
-          });
-          this.restaurantsSubject.next(restaurants);
-          return;
-        }
-      }
-      // Si no hay restaurantes guardados o están vacíos, usar los de muestra
-      console.log('No hay restaurantes en localStorage, usando restaurantes de muestra');
-      this.restaurantsSubject.next([...SAMPLE_RESTAURANTS]);
-    } catch (error) {
-      console.error('Error loading restaurants from localStorage:', error);
-      // En caso de error, usar los de muestra
-      this.restaurantsSubject.next([...SAMPLE_RESTAURANTS]);
-    }
+  /**
+   * GET /restaurants/{id}/users - Consultar usuarios asignados
+   */
+  getRestaurantUsers(restaurantId: string): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/${restaurantId}/users`);
   }
 }
 

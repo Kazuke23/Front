@@ -57,7 +57,7 @@ interface SidebarItem {
       <div class="sidebar-footer">
         <div class="user-info" *ngIf="!isCollapsed && currentUser">
           <div class="user-avatar">
-            <span class="avatar-text">{{ getInitials(currentUser.nombre) }}</span>
+            <span class="avatar-text">{{ getInitials(currentUser.nombre || currentUser.full_name) }}</span>
           </div>
           <div class="user-details">
             <div class="user-name">{{ currentUser.nombre }}</div>
@@ -549,14 +549,17 @@ export class SidebarComponent implements OnInit, OnDestroy {
   get visibleItems(): SidebarItem[] {
     if (!this.currentUser) return [];
     
+    const userRole = (this.currentUser as any).rol || (this.currentUser as any).role;
+    if (!userRole) return [];
+    
     return this.sidebarItems
-      .filter(item => item.roles.includes(this.currentUser!.rol))
+      .filter(item => item.roles.includes(userRole))
       .map(item => {
         // Ajustar ruta de inventario según el rol
         if (item.id === 'inventario') {
-          if (this.currentUser!.rol === 'Chef') {
+          if (userRole === 'Chef') {
             return { ...item, route: '/inventario/chef' };
-          } else if (this.currentUser!.rol === 'Administrador') {
+          } else if (userRole === 'Administrador') {
             return { ...item, route: '/inventario/admin' };
           }
         }
@@ -581,7 +584,8 @@ export class SidebarComponent implements OnInit, OnDestroy {
     }
   }
 
-  getInitials(name: string): string {
+  getInitials(name: string | undefined): string {
+    if (!name) return '??';
     return name
       .split(' ')
       .map(word => word.charAt(0))

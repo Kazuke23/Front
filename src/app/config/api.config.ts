@@ -2,6 +2,6 @@
 // Ajusta esta URL según tu backend
 
 export const API_CONFIG = {
-  baseUrl: 'http://localhost:8000/api'
+  baseUrl: 'http://51.222.40.112:8181'
 };
 

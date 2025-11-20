@@ -1,12 +1,30 @@
 import { Injectable, Inject, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { BehaviorSubject, Observable, tap, catchError, of } from 'rxjs';
+import { API_CONFIG } from '../config/api.config';
 
 export interface User {
   id: string;
   email: string;
-  nombre: string;
-  rol: 'Administrador' | 'Chef' | 'Usuario';
+  nombre?: string;
+  full_name?: string;
+  rol?: 'Administrador' | 'Chef' | 'Usuario';
+  role?: string;
+  username?: string;
+  restaurant_id?: string;
+}
+
+export interface LoginResponse {
+  access_token: string;
+  token_type: string;
+  user?: User;
+}
+
+export interface RegisterRequest {
+  username: string;
+  email: string;
+  password: string;
 }
 
 export interface AuthState {
@@ -24,54 +42,95 @@ export class AuthService {
   });
 
   public authState$ = this.authState.asObservable();
+  private readonly apiUrl = `${API_CONFIG.baseUrl}/auth`;
 
-  constructor(@Inject(PLATFORM_ID) private platformId: Object) {
-    // Solo verificar datos guardados en el navegador
+  constructor(
+    private http: HttpClient,
+    @Inject(PLATFORM_ID) private platformId: Object
+  ) {
     if (isPlatformBrowser(this.platformId)) {
       this.checkStoredAuth();
     }
   }
 
   /**
+   * Registrar nuevo usuario
+   */
+  register(data: RegisterRequest): Observable<LoginResponse> {
+    return this.http.post<LoginResponse>(`${this.apiUrl}/register`, data).pipe(
+      tap(response => {
+        if (response.access_token) {
+          this.saveToken(response.access_token);
+          if (response.user) {
+            this.normalizeUser(response.user);
+            this.setAuthState(true, response.user);
+          }
+        }
+      }),
+      catchError(error => {
+        console.error('Error en registro:', error);
+        throw error;
+      })
+    );
+  }
+
+  /**
    * Iniciar sesión con email y contraseña
    */
-  login(email: string, password: string): Promise<boolean> {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        let user: User | null = null;
-
-        // Simular autenticación con usuarios predefinidos
-        if (email === 'admin@recetario.com' && password === '123456') {
-          user = {
-            id: '1',
-            email: 'admin@recetario.com',
-            nombre: 'Administrador',
-            rol: 'Administrador'
-          };
-        } else if (email === 'chef@recetario.com' && password === 'chef123') {
-          user = {
-            id: '2',
-            email: 'chef@recetario.com',
-            nombre: 'Chef Juan',
-            rol: 'Chef'
-          };
-        } else if (email === 'usuario@recetario.com' && password === 'user123') {
-          user = {
-            id: '3',
-            email: 'usuario@recetario.com',
-            nombre: 'Usuario Normal',
-            rol: 'Usuario'
-          };
+  login(email: string, password: string): Observable<LoginResponse> {
+    return this.http.post<LoginResponse>(`${this.apiUrl}/login`, { email, password }).pipe(
+      tap(response => {
+        if (response.access_token) {
+          this.saveToken(response.access_token);
+          if (response.user) {
+            this.normalizeUser(response.user);
+            this.setAuthState(true, response.user);
+          } else {
+            // Si no viene el usuario en la respuesta, obtenerlo
+            this.getCurrentUserFromAPI();
+          }
         }
+      }),
+      catchError(error => {
+        console.error('Error en login:', error);
+        throw error;
+      })
+    );
+  }
 
-        if (user) {
-          this.setAuthState(true, user);
-          this.saveAuthToStorage(user);
-          resolve(true);
-        } else {
-          resolve(false);
-        }
-      }, 1000);
+  /**
+   * Normalizar usuario para compatibilidad
+   */
+  private normalizeUser(user: User): void {
+    // Mapear full_name a nombre si no existe
+    if (!user.nombre && user.full_name) {
+      user.nombre = user.full_name;
+    }
+    // Mapear role a rol si no existe
+    if (!user.rol && user.role) {
+      user.rol = user.role as 'Administrador' | 'Chef' | 'Usuario';
+    }
+    // Mapear nombre a full_name si no existe
+    if (!user.full_name && user.nombre) {
+      user.full_name = user.nombre;
+    }
+    // Mapear rol a role si no existe
+    if (!user.role && user.rol) {
+      user.role = user.rol;
+    }
+  }
+
+  /**
+   * Obtener usuario actual desde la API
+   */
+  private getCurrentUserFromAPI(): void {
+    this.http.get<User>(`${API_CONFIG.baseUrl}/users/me`).pipe(
+      catchError(() => of(null))
+    ).subscribe(user => {
+      if (user) {
+        this.normalizeUser(user);
+        this.setAuthState(true, user);
+      }
     });
   }
 
@@ -80,7 +139,36 @@ export class AuthService {
    */
   logout(): void {
     this.setAuthState(false, null);
-    this.clearAuthFromStorage();
+    this.clearToken();
+  }
+
+  /**
+   * Obtener token JWT
+   */
+  getToken(): string | null {
+    if (isPlatformBrowser(this.platformId)) {
+      return localStorage.getItem('auth_token');
+    }
+    return null;
+  }
+
+  /**
+   * Guardar token JWT
+   */
+  private saveToken(token: string): void {
+    if (isPlatformBrowser(this.platformId)) {
+      localStorage.setItem('auth_token', token);
+    }
+  }
+
+  /**
+   * Limpiar token JWT
+   */
+  private clearToken(): void {
+    if (isPlatformBrowser(this.platformId)) {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_user');
+    }
   }
 
   /**
@@ -110,7 +198,7 @@ export class AuthService {
    */
   hasAnyRole(roles: string[]): boolean {
     const user = this.getCurrentUser();
-    return user ? roles.includes(user.rol) : false;
+    return user ? roles.includes(user.rol || 'sin rol') : false;
   }
 
   /**
@@ -131,24 +219,16 @@ export class AuthService {
    * Actualizar el estado de autenticación
    */
   private setAuthState(isAuthenticated: boolean, user: User | null): void {
-    this.authState.next({ isAuthenticated, user });
-  }
-
-  /**
-   * Guardar datos de autenticación en localStorage
-   */
-  private saveAuthToStorage(user: User): void {
-    if (isPlatformBrowser(this.platformId)) {
-      localStorage.setItem('auth_user', JSON.stringify(user));
+    if (user) {
+      this.normalizeUser(user);
     }
-  }
-
-  /**
-   * Limpiar datos de autenticación del localStorage
-   */
-  private clearAuthFromStorage(): void {
+    this.authState.next({ isAuthenticated, user });
     if (isPlatformBrowser(this.platformId)) {
-      localStorage.removeItem('auth_user');
+      if (user) {
+        localStorage.setItem('auth_user', JSON.stringify(user));
+      } else {
+        localStorage.removeItem('auth_user');
+      }
     }
   }
 
@@ -160,14 +240,17 @@ export class AuthService {
       return;
     }
 
+    const token = localStorage.getItem('auth_token');
     const storedUser = localStorage.getItem('auth_user');
-    if (storedUser) {
+    
+    if (token && storedUser) {
       try {
         const user = JSON.parse(storedUser) as User;
+        this.normalizeUser(user);
         this.setAuthState(true, user);
       } catch (error) {
         console.error('Error al parsear datos de usuario guardados:', error);
-        this.clearAuthFromStorage();
+        this.clearToken();
       }
     }
   }

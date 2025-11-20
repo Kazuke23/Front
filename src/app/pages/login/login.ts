@@ -148,7 +148,7 @@ export class Login implements OnInit, OnDestroy {
     }, 3000);
   }
 
-  async onSubmit(): Promise<void> {
+  onSubmit(): void {
     this.submitted = true;
     this.errorMessage = '';
 
@@ -156,30 +156,28 @@ export class Login implements OnInit, OnDestroy {
 
     this.loading = true;
 
-    try {
-      const { email, password } = this.formLogin.value;
-      const success = await this.authService.login(email, password);
-
-      if (success) {
-        this.showSuccessEffects();
-        // Navegar inmediatamente sin mostrar alert
-        setTimeout(() => {
-          this.router.navigate([this.returnUrl]);
-        }, 500);
-      } else {
-        this.errorMessage = 'Correo o contraseña incorrectos. Intenta nuevamente.';
+    const { email, password } = this.formLogin.value;
+    
+    this.authService.login(email, password).subscribe({
+      next: (response) => {
+        if (response.access_token) {
+          this.showSuccessEffects();
+          // Navegar inmediatamente sin mostrar alert
+          setTimeout(() => {
+            this.router.navigate([this.returnUrl]);
+          }, 500);
+        } else {
+          this.errorMessage = 'Correo o contraseña incorrectos. Intenta nuevamente.';
+          this.loading = false;
+          this.cdr.detectChanges();
+        }
+      },
+      error: (error) => {
+        console.error('Error en login:', error);
+        this.errorMessage = error.error?.message || 'Error al iniciar sesión. Intenta nuevamente.';
         this.loading = false;
         this.cdr.detectChanges();
       }
-    } catch (error) {
-      this.errorMessage = 'Error al iniciar sesión. Intenta nuevamente.';
-      this.loading = false;
-      this.cdr.detectChanges();
-    } finally {
-      if (this.loading) {
-        this.loading = false;
-      }
-      this.cdr.detectChanges();
-    }
+    });
   }
 }

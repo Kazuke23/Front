@@ -1,19 +1,94 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { BehaviorSubject, Observable, tap, catchError, of, map } from 'rxjs';
 import { Menu } from '../models/menu.model';
 import { RestaurantService } from './restaurant.service';
+import { API_CONFIG } from '../config/api.config';
+
+interface ApiMenu {
+  id: string;
+  restaurant_id: string;
+  name: string;
+  start_date: string;
+  end_date: string;
+}
+
+interface CreateMenuRequest {
+  restaurant_id: string;
+  name: string;
+  start_date: string;
+  end_date: string;
+}
+
+interface AddRecipeToMenuRequest {
+  recipe_id: string;
+}
 
 @Injectable({
   providedIn: 'root'
 })
 export class MenuService {
+  private readonly apiUrl = `${API_CONFIG.baseUrl}/menus`;
   private menusSubject = new BehaviorSubject<Menu[]>([]);
   public menus$: Observable<Menu[]> = this.menusSubject.asObservable();
 
-  constructor(private restaurantService: RestaurantService) {
-    this.loadFromLocalStorage();
+  constructor(
+    private http: HttpClient,
+    private restaurantService: RestaurantService
+  ) {
+    this.loadMenus();
   }
 
+  /**
+   * Cargar menús desde la API
+   */
+  private loadMenus(): void {
+    this.http.get<ApiMenu[]>(this.apiUrl).pipe(
+      map(apiMenus => apiMenus.map(api => this.apiToMenu(api))),
+      catchError(error => {
+        console.warn('Error al cargar menús desde API, usando localStorage:', error);
+        this.loadFromLocalStorage();
+        return of([]);
+      })
+    ).subscribe(menus => {
+      this.menusSubject.next(menus);
+      if (menus.length > 0) {
+        this.saveToLocalStorage();
+      }
+    });
+  }
+
+  /**
+   * Convertir ApiMenu a Menu
+   */
+  private apiToMenu(api: ApiMenu): Menu {
+    return {
+      id: api.id,
+      restauranteId: api.restaurant_id,
+      nombre: api.name,
+      fechaInicio: api.start_date,
+      fechaFin: api.end_date,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+  }
+
+  /**
+   * Convertir Menu a ApiMenu
+   */
+  private menuToApi(menu: Menu): ApiMenu {
+    return {
+      id: menu.id,
+      restaurant_id: menu.restauranteId,
+      name: menu.nombre,
+      start_date: menu.fechaInicio,
+      end_date: menu.fechaFin
+    };
+  }
+
+  /**
+   * GET /menus - Listar menús
+   */
   getMenus(): Menu[] {
     try {
       if (!this.restaurantService) {
@@ -26,7 +101,7 @@ export class MenuService {
       
       return this.menusSubject.value.map(menu => {
         try {
-          const restaurant = this.restaurantService.getRestaurantById(menu.restauranteId);
+          const restaurant = this.restaurantService.getRestaurantByIdSync(menu.restauranteId);
           return {
             ...menu,
             restauranteNombre: restaurant?.name || 'Restaurante no encontrado'
@@ -45,6 +120,26 @@ export class MenuService {
     }
   }
 
+  /**
+   * GET /menus - Listar menús (Observable)
+   */
+  getMenusObservable(): Observable<Menu[]> {
+    return this.http.get<ApiMenu[]>(this.apiUrl).pipe(
+      map(apiMenus => apiMenus.map(api => this.apiToMenu(api))),
+      tap(menus => {
+        this.menusSubject.next(menus);
+        this.saveToLocalStorage();
+      }),
+      catchError(error => {
+        console.error('Error al obtener menús:', error);
+        return of(this.menusSubject.value);
+      })
+    );
+  }
+
+  /**
+   * GET /menus/{id} - Consultar menú
+   */
   getMenuById(id: string): Menu | undefined {
     try {
       const menu = this.menusSubject.value.find(m => m.id === id);
@@ -55,7 +150,7 @@ export class MenuService {
             restauranteNombre: 'Restaurante no encontrado'
           };
         }
-        const restaurant = this.restaurantService.getRestaurantById(menu.restauranteId);
+        const restaurant = this.restaurantService.getRestaurantByIdSync(menu.restauranteId);
         return {
           ...menu,
           restauranteNombre: restaurant?.name || 'Restaurante no encontrado'
@@ -68,44 +163,119 @@ export class MenuService {
     }
   }
 
+  /**
+   * GET /menus/{id} - Consultar menú (Observable)
+   */
+  getMenuByIdObservable(id: string): Observable<Menu> {
+    return this.http.get<ApiMenu>(`${this.apiUrl}/${id}`).pipe(
+      map(api => this.apiToMenu(api)),
+      catchError(error => {
+        console.error('Error al obtener menú:', error);
+        const local = this.menusSubject.value.find(m => m.id === id);
+        return local ? of(local) : of(null as any);
+      })
+    );
+  }
+
+  /**
+   * POST /menus - Crear menú
+   */
   addMenu(menu: Menu): void {
-    console.log('=== addMenu llamado ===');
-    console.log('Menú recibido:', menu);
-    console.log('Menús actuales antes de agregar:', this.menusSubject.value.length);
-    
-    const menus = [...this.menusSubject.value];
-    menus.unshift(menu);
-    
-    console.log('Menús después de agregar:', menus.length);
-    console.log('Lista completa de menús:', menus);
-    
-    this.menusSubject.next(menus);
-    console.log('BehaviorSubject actualizado');
-    
-    this.saveToLocalStorage();
-    console.log('Menú agregado y guardado exitosamente');
-    
-    // Verificar inmediatamente después
-    const verifyMenus = this.menusSubject.value;
-    console.log('Verificación - menús en subject:', verifyMenus.length);
+    const createRequest: CreateMenuRequest = {
+      restaurant_id: menu.restauranteId,
+      name: menu.nombre,
+      start_date: menu.fechaInicio,
+      end_date: menu.fechaFin
+    };
+
+    this.http.post<ApiMenu>(this.apiUrl, createRequest).pipe(
+      map(api => this.apiToMenu(api)),
+      tap(newMenu => {
+        const menus = [newMenu, ...this.menusSubject.value];
+        this.menusSubject.next(menus);
+        this.saveToLocalStorage();
+      }),
+      catchError(error => {
+        console.error('Error al crear menú en API, guardando localmente:', error);
+        // Fallback: guardar localmente
+        const menus = [menu, ...this.menusSubject.value];
+        this.menusSubject.next(menus);
+        this.saveToLocalStorage();
+        return of(menu);
+      })
+    ).subscribe();
   }
 
+  /**
+   * PUT /menus/{id} - Editar menú
+   */
   updateMenu(id: string, menu: Partial<Menu>): void {
-    const menus = this.menusSubject.value;
-    const index = menus.findIndex(m => m.id === id);
-    if (index !== -1) {
-      menus[index] = { ...menus[index], ...menu, updatedAt: new Date() };
-      this.menusSubject.next([...menus]);
-      this.saveToLocalStorage();
+    const existingMenu = this.menusSubject.value.find(m => m.id === id);
+    if (!existingMenu) {
+      console.error('Menú no encontrado:', id);
+      return;
     }
+
+    const updatedMenu = { ...existingMenu, ...menu, updatedAt: new Date() };
+    const updateRequest: CreateMenuRequest = {
+      restaurant_id: updatedMenu.restauranteId,
+      name: updatedMenu.nombre,
+      start_date: updatedMenu.fechaInicio,
+      end_date: updatedMenu.fechaFin
+    };
+
+    this.http.put<ApiMenu>(`${this.apiUrl}/${id}`, updateRequest).pipe(
+      map(api => this.apiToMenu(api)),
+      tap(updated => {
+        const menus = this.menusSubject.value.map(m => m.id === id ? updated : m);
+        this.menusSubject.next(menus);
+        this.saveToLocalStorage();
+      }),
+      catchError(error => {
+        console.error('Error al actualizar menú en API, actualizando localmente:', error);
+        // Fallback: actualizar localmente
+        const menus = this.menusSubject.value.map(m => m.id === id ? updatedMenu : m);
+        this.menusSubject.next(menus);
+        this.saveToLocalStorage();
+        return of(updatedMenu);
+      })
+    ).subscribe();
   }
 
+  /**
+   * DELETE /menus/{id} - Eliminar menú
+   */
   deleteMenu(id: string): void {
-    console.log('Eliminando menú con id:', id);
-    const menus = this.menusSubject.value.filter(m => m.id !== id);
-    console.log('Menús después de eliminar:', menus);
-    this.menusSubject.next([...menus]);
-    this.saveToLocalStorage();
+    this.http.delete<void>(`${this.apiUrl}/${id}`).pipe(
+      tap(() => {
+        const menus = this.menusSubject.value.filter(m => m.id !== id);
+        this.menusSubject.next(menus);
+        this.saveToLocalStorage();
+      }),
+      catchError(error => {
+        console.error('Error al eliminar menú en API, eliminando localmente:', error);
+        // Fallback: eliminar localmente
+        const menus = this.menusSubject.value.filter(m => m.id !== id);
+        this.menusSubject.next(menus);
+        this.saveToLocalStorage();
+        return of(void 0);
+      })
+    ).subscribe();
+  }
+
+  /**
+   * POST /menus/{id}/recipes - Agregar receta al menú
+   */
+  addRecipeToMenu(menuId: string, recipeId: string): Observable<any> {
+    const request: AddRecipeToMenuRequest = { recipe_id: recipeId };
+    return this.http.post(`${this.apiUrl}/${menuId}/recipes`, request);
+  }
+
+  /**
+   * GET /menus/{id}/recipes - Consultar recetas del menú
+   */
+  getMenuRecipes(menuId: string): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/${menuId}/recipes`);
   }
 
   private saveToLocalStorage(): void {
