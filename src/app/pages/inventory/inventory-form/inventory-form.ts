@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { InventoryService } from '../../../services/inventory.service';
+import { NotificationService } from '../../../services/notification.service';
 import {
   InventoryIngredient,
   InventoryItem,
@@ -33,7 +34,8 @@ export class InventoryFormComponent implements OnInit {
     private fb: FormBuilder,
     private router: Router,
     private route: ActivatedRoute,
-    private inventoryService: InventoryService
+    private inventoryService: InventoryService,
+    private notificationService: NotificationService
   ) {
     this.restaurants = this.inventoryService.getRestaurants();
     this.ingredients = this.inventoryService.getIngredients();
@@ -64,8 +66,8 @@ export class InventoryFormComponent implements OnInit {
     this.inventoryService.getById(id).subscribe({
       next: (item) => {
         if (!item) {
-          alert('No se encontró el ítem solicitado.');
-          this.router.navigate(['/inventario/admin']);
+          this.notificationService.warning('No se encontró el ítem solicitado.');
+          setTimeout(() => this.router.navigate(['/inventario/admin']), 1500);
           return;
         }
         this.currentItem = item;
@@ -80,8 +82,8 @@ export class InventoryFormComponent implements OnInit {
         // Si falla, intentar con datos locales
         const localItem = this.inventoryService.getByIdSync(id);
         if (!localItem) {
-          alert('No se encontró el ítem solicitado.');
-          this.router.navigate(['/inventario/admin']);
+          this.notificationService.warning('No se encontró el ítem solicitado.');
+          setTimeout(() => this.router.navigate(['/inventario/admin']), 1500);
           return;
         }
         this.currentItem = localItem;
@@ -105,13 +107,16 @@ export class InventoryFormComponent implements OnInit {
 
     if (this.isEditMode && this.currentItem) {
       // Solo se puede actualizar la cantidad según el endpoint PUT /inventory/{id}
-      this.inventoryService.updateQuantity(this.currentItem.id, Number(value.quantity)).subscribe({
+      const itemId = this.currentItem.id;
+      const quantity = Number(value.quantity);
+      this.inventoryService.updateQuantity(itemId, quantity).subscribe({
         next: () => {
-          this.router.navigate(['/inventario/admin']);
+          this.notificationService.success(`¡Cantidad actualizada a ${quantity} unidades exitosamente!`);
+          setTimeout(() => this.router.navigate(['/inventario/admin']), 1500);
         },
         error: (error) => {
           console.error('Error al actualizar item:', error);
-          alert('Error al actualizar el item. Por favor, intente nuevamente.');
+          this.notificationService.error('No se pudo actualizar el ítem. Por favor, intente nuevamente.');
         }
       });
     } else {
@@ -123,11 +128,12 @@ export class InventoryFormComponent implements OnInit {
       };
       this.inventoryService.create(payload).subscribe({
         next: () => {
-          this.router.navigate(['/inventario/admin']);
+          this.notificationService.success('¡Nuevo ítem agregado al inventario exitosamente!');
+          setTimeout(() => this.router.navigate(['/inventario/admin']), 1500);
         },
         error: (error) => {
           console.error('Error al crear item:', error);
-          alert('Error al crear el item. Por favor, intente nuevamente.');
+          this.notificationService.error('No se pudo crear el ítem. Por favor, intente nuevamente.');
         }
       });
     }

@@ -1,0 +1,9 @@
+<div class="notification" [class.visible]="visible" [class.success]="type === 'success'" [class.error]="type === 'error'" [class.warning]="type === 'warning'" [class.info]="type === 'info'">
+  <div class="notification-content">
+    <span class="notification-icon">{{ getIcon() }}</span>
+    <span class="notification-message">{{ message }}</span>
+    <button class="notification-close" (click)="hide()" aria-label="Cerrar">×</button>
+  </div>
+</div>
+
+

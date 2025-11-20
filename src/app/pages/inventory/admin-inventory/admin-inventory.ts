@@ -1,17 +1,12 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { InventoryService } from '../../../services/inventory.service';
+import { NotificationService } from '../../../services/notification.service';
+import { ConfirmService } from '../../../services/confirm.service';
 import { InventoryItemDisplay, InventoryRestaurant } from '../../../models/inventory.model';
-
-interface StatCard {
-  label: string;
-  value: string;
-  icon: string;
-  trend: number;
-}
 
 @Component({
   selector: 'app-admin-inventory',
@@ -40,13 +35,15 @@ export class AdminInventoryComponent implements OnInit, OnDestroy {
   statusFilter: string = 'all';
   restaurantFilter: string = 'all';
   selectedItem: InventoryItemDisplay | null = null;
-  statCards: StatCard[] = [];
 
   private subscription?: Subscription;
 
   constructor(
     private inventoryService: InventoryService,
-    private router: Router
+    private router: Router,
+    private notificationService: NotificationService,
+    private confirmService: ConfirmService,
+    private cdr: ChangeDetectorRef
   ) {
     this.restaurants = this.inventoryService.getRestaurants();
   }
@@ -71,13 +68,28 @@ export class AdminInventoryComponent implements OnInit, OnDestroy {
       }
     });
 
-    // Suscribirse a cambios en el BehaviorSubject
+    // Suscribirse a cambios en el BehaviorSubject para actualizaciones en tiempo real
     this.subscription = this.inventoryService.inventory$.subscribe(() => {
-      this.items = this.inventoryService.getAllSync();
-      if (!this.selectedItem && this.items.length) {
-        this.selectedItem = this.items[0];
-      }
-      this.refreshData();
+      // Usar setTimeout para asegurar que se ejecute después de la actualización del servicio
+      setTimeout(() => {
+        const newItems = this.inventoryService.getAllSync();
+        const currentIds = this.items.map(i => i.id).sort().join(',');
+        const newIds = newItems.map(i => i.id).sort().join(',');
+        
+        // Actualizar si hay cambios en los IDs
+        if (currentIds !== newIds) {
+          // Crear nuevo array para forzar detección de cambios
+          this.items = [...newItems];
+          
+          // Actualizar selección si el item seleccionado ya no existe
+          if (this.selectedItem && !this.items.find(i => i.id === this.selectedItem?.id)) {
+            this.selectedItem = this.items.length > 0 ? this.items[0] : null;
+          }
+          
+          this.refreshData();
+          this.cdr.detectChanges();
+        }
+      }, 0);
     });
   }
 
@@ -89,38 +101,6 @@ export class AdminInventoryComponent implements OnInit, OnDestroy {
     this.stats = this.inventoryService.getSummary();
     this.categories = this.inventoryService.getCategories();
     this.recentItems = this.items.slice(0, 4);
-    this.statCards = [
-      {
-        label: 'Artículos activos',
-        value: this.stats.totalItems.toString(),
-        icon: '📦',
-        trend: 4
-      },
-      {
-        label: 'Unidades totales',
-        value: this.stats.totalUnits.toLocaleString('es-ES'),
-        icon: '📊',
-        trend: 7
-      },
-      {
-        label: 'Alertas críticas',
-        value: this.stats.critical.toString(),
-        icon: '🚨',
-        trend: -3
-      },
-      {
-        label: 'Categorías cubiertas',
-        value: this.stats.categories.toString(),
-        icon: '🏷️',
-        trend: 2
-      },
-      {
-        label: 'Sedes con stock',
-        value: this.stats.restaurants.toString(),
-        icon: '🏢',
-        trend: 1
-      }
-    ];
     this.applyFilters();
   }
 
@@ -163,20 +143,57 @@ export class AdminInventoryComponent implements OnInit, OnDestroy {
   deleteItem(item: InventoryItemDisplay, event: MouseEvent): void {
     event.stopPropagation();
     const name = item.ingredientName || item.id;
-    const confirmed = confirm(`¿Eliminar "${name}" del inventario?`);
-    if (confirmed) {
-      this.inventoryService.delete(item.id).subscribe({
-        next: () => {
-          if (this.selectedItem?.id === item.id) {
-            this.selectedItem = null;
-          }
-        },
-        error: (error) => {
-          console.error('Error al eliminar item:', error);
-          alert('Error al eliminar el item. Por favor, intente nuevamente.');
+    const itemId = item.id;
+    
+    this.confirmService.confirm({
+      title: 'Eliminar ítem',
+      message: `¿Está seguro de eliminar "${name}" del inventario? Esta acción no se puede deshacer.`,
+      confirmText: 'Eliminar',
+      cancelText: 'Cancelar',
+      type: 'danger'
+    }).then(confirmed => {
+      if (confirmed) {
+        // Eliminar inmediatamente del array local (respuesta instantánea)
+        this.items = this.items.filter(i => i.id !== itemId);
+        
+        // Limpiar selección si era el item seleccionado
+        if (this.selectedItem?.id === itemId) {
+          this.selectedItem = this.items.length > 0 ? this.items[0] : null;
         }
-      });
-    }
+        
+        // Actualizar filtros y estadísticas
+        this.refreshData();
+        
+        // Forzar detección de cambios inmediatamente
+        this.cdr.detectChanges();
+        
+        // Mostrar notificación
+        this.notificationService.success(`¡"${name}" eliminado exitosamente!`);
+        
+        // Llamar al servicio para sincronizar con backend (ya actualizó BehaviorSubject)
+        this.inventoryService.delete(itemId).subscribe({
+          next: () => {
+            // Sincronizar con el servicio para asegurar consistencia
+            const syncedItems = this.inventoryService.getAllSync();
+            if (syncedItems.length !== this.items.length) {
+              this.items = [...syncedItems];
+              this.refreshData();
+              this.cdr.detectChanges();
+            }
+          },
+          error: (error) => {
+            console.error('Error al eliminar item del backend:', error);
+            // Ya se eliminó localmente, solo sincronizar si es necesario
+            const syncedItems = this.inventoryService.getAllSync();
+            if (syncedItems.length !== this.items.length) {
+              this.items = [...syncedItems];
+              this.refreshData();
+              this.cdr.detectChanges();
+            }
+          }
+        });
+      }
+    });
   }
 
   getStockProgress(item: InventoryItemDisplay): number {
@@ -202,9 +219,18 @@ export class AdminInventoryComponent implements OnInit, OnDestroy {
 
   // Método para reinicializar datos si hay problemas
   resetData(): void {
-    if (confirm('¿Desea reinicializar todos los datos de inventario? Esto eliminará todos los ítems actuales.')) {
-      this.inventoryService.resetData();
-      this.refreshData();
-    }
+    this.confirmService.confirm({
+      title: 'Reinicializar datos',
+      message: '¿Desea reinicializar todos los datos de inventario? Esto eliminará todos los ítems actuales y no se puede deshacer.',
+      confirmText: 'Reinicializar',
+      cancelText: 'Cancelar',
+      type: 'danger'
+    }).then(confirmed => {
+      if (confirmed) {
+        this.inventoryService.resetData();
+        this.refreshData();
+        this.notificationService.success('¡Datos reinicializados exitosamente!');
+      }
+    });
   }
 }

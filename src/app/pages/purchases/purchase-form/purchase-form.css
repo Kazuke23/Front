@@ -1,7 +1,7 @@
 :host {
   display: block;
   padding: 32px;
-  background: radial-gradient(circle at 10% 20%, rgba(233, 30, 99, 0.1), transparent 45%), #f8fafc;
+  background: radial-gradient(circle at 10% 20%, rgba(233, 30, 99, 0.1), transparent 45%), #F5F5F5;
   min-height: 100vh;
   animation: fadeIn 0.6s ease;
 }
