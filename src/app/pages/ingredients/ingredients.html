@@ -1,54 +1,55 @@
-<div class="ingredients-container">
-  <h2>🍅 Gestión de Ingredientes</h2>
+<div class="header">
+  <div class="header-text">
+    <h1>Gestión de Ingredientes</h1>
 
-  <div class="filters">
-    <input
-      type="text"
-      [(ngModel)]="searchTerm"
-      (input)="filterIngredients()"
-      placeholder="Buscar por nombre..."
-    />
-
-    <select [(ngModel)]="selectedCategory" (change)="filterIngredients()">
-      <option *ngFor="let cat of categories" [value]="cat">{{ cat }}</option>
-    </select>
-
-    <button (click)="toggleForm()" class="create-btn">
-      {{ showForm ? 'Cancelar' : '+ Agregar Ingrediente' }}
-    </button>
-  </div>
-
-  <div *ngIf="showForm" class="ingredient-form">
-    <h3>{{ editingIngredient ? 'Editar Ingrediente' : 'Agregar Nuevo Ingrediente' }}</h3>
-
-    <form (ngSubmit)="saveIngredient()">
-      <input [(ngModel)]="formData.name" name="name" placeholder="Nombre" required />
-      <input [(ngModel)]="formData.unit" name="unit" placeholder="Unidad (kg, g, ml...)" required />
-      <input [(ngModel)]="formData.cost" name="cost" type="number" placeholder="Costo (COP)" required />
-      <input [(ngModel)]="formData.stock" name="stock" type="number" placeholder="Stock disponible" required />
-      <select [(ngModel)]="formData.category" name="category">
-        <option *ngFor="let cat of categories" [value]="cat">{{ cat }}</option>
-      </select>
-      <textarea [(ngModel)]="formData.description" name="description" placeholder="Descripción"></textarea>
-
-      <button type="submit" class="save-btn">💾 Guardar</button>
-    </form>
-  </div>
-
-  <div class="ingredient-list">
-    <div class="ingredient-card" *ngFor="let i of filteredIngredients">
-      <h4>{{ i.name }}</h4>
-      <p><strong>Categoría:</strong> {{ i.category }}</p>
-      <p>
-        <strong>Unidad:</strong> {{ i.unit }} |
-        <strong>Costo:</strong> {{ i.cost | currency:'COP':'symbol' }}
-      </p>
-      <p><strong>Stock:</strong> {{ i.stock }}</p>
-      <p class="desc">{{ i.description }}</p>
-      <div class="actions">
-        <button (click)="editIngredient(i)">✏️ Editar</button>
-        <button (click)="deleteIngredient(i.id)">🗑️ Eliminar</button>
-      </div>
+    <div class="search-container">
+      <i class="fas fa-search"></i>
+      <input 
+        type="text" 
+        placeholder="Buscar ingrediente..."
+        [(ngModel)]="searchTerm">
     </div>
   </div>
+
+  <button class="btn-primary" (click)="goToCreate()">
+    + Crear Ingrediente
+  </button>
+</div>
+
+<div class="content-card" *ngIf="!loading">
+
+  <div class="card-header">
+    <h3>Lista de Ingredientes</h3>
+  </div>
+
+  <table class="ingredients-table">
+    <thead>
+      <tr>
+        <th>Nombre</th>
+        <th>Unidad</th>
+        <th>Calorías</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+
+    <tbody>
+
+      <!-- ✔ AQUI el arreglo filtrado -->
+      <tr *ngFor="let ing of filteredIngredients">
+        <td>{{ ing.name }}</td>
+
+        <!-- Opcional: si luego quieres mostrar el nombre de unidad en lugar del id -->
+        <td>{{ ing.default_unit_id }}</td>
+
+        <td>{{ ing.calories_per_unit }}</td>
+
+        <td class="actions">
+          <i class="fas fa-edit edit-icon" (click)="goToEdit(ing.id)"></i>
+          <i class="fas fa-trash delete-icon" (click)="deleteIngredient(ing.id)"></i>
+        </td>
+      </tr>
+
+    </tbody>
+  </table>
+
 </div>

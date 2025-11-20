@@ -1,0 +1,53 @@
+.form-container {
+  background: #fff;
+  padding: 30px;
+  border-radius: 20px;
+  max-width: 600px;
+  margin: auto;
+  margin-top: 20px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+}
+
+.title {
+  font-size: 28px;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+label {
+  font-weight: bold;
+  margin-top: 18px;
+  display: block;
+}
+
+input, select {
+  width: 100%;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid #ddd;
+  margin-top: 6px;
+  font-size: 15px;
+}
+
+.full {
+  width: 100%;
+  margin-top: 25px;
+}
+
+.btn-save {
+  background: #ff4f79;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: bold;
+  color: white;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 20px;
+  transition: 0.2s;
+}
+
+.btn-save:hover {
+  background: #e03a63;
+}

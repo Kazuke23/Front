@@ -1,86 +1,93 @@
-.ingredients-container {
-  max-width: 900px;
-  margin: auto;
-  padding: 20px;
-}
-
-.filters {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.filters input,
-.filters select {
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-}
-
-.create-btn {
-  background-color: #43a047;
-  color: white;
-  padding: 8px 12px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.ingredient-form {
-  background: #f6f6f6;
-  border-radius: 12px;
-  padding: 15px;
-  margin-bottom: 20px;
-}
-
-.ingredient-form form {
-  display: grid;
-  gap: 10px;
-}
-
-.save-btn {
-  background-color: #43a047;
-  color: white;
-  border: none;
-  padding: 10px;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.ingredient-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
-  gap: 15px;
-}
-
-.ingredient-card {
-  border: 1px solid #ddd;
-  border-radius: 12px;
-  padding: 15px;
-  background: #fff;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
-
-.ingredient-card h4 {
-  margin: 0 0 10px;
-  color: #2e7d32;
-}
-
-.ingredient-card .desc {
-  color: #555;
-  font-size: 14px;
-}
-
-.actions {
+.header {
   display: flex;
   justify-content: space-between;
-  margin-top: 10px;
+  align-items: center;
+  margin-bottom: 25px;
 }
 
-.actions button {
+.header-text h1 {
+  font-size: 32px;
+  font-weight: bold;
+}
+
+.header-text p {
+  color: #777;
+  margin-top: -5px;
+}
+
+.search-container {
+  margin-top: 15px;
+  position: relative;
+  width: 300px;
+}
+
+.search-container i {
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  color: #ff4f79;
+}
+
+.search-container input {
+  width: 100%;
+  padding: 10px 14px 10px 35px;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+}
+
+.header-img {
+  width: 260px;
+  border-radius: 15px;
+}
+
+.content-card {
+  background: #fff;
+  padding: 20px;
+  border-radius: 15px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+
+.card-header {
+  margin-bottom: 15px;
+}
+
+.btn-primary {
+  background: #ff4f79;
+  color: white;
   border: none;
-  padding: 6px 10px;
-  border-radius: 8px;
+  padding: 10px 18px;
+  border-radius: 10px;
   cursor: pointer;
+  float: right;
+}
+
+.ingredients-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+}
+
+.ingredients-table th {
+  background: #fafafa;
+  padding: 12px;
+  text-align: left;
+  font-weight: bold;
+}
+
+.ingredients-table td {
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.actions i {
+  cursor: pointer;
+  margin-right: 10px;
+}
+
+.edit-icon {
+  color: #4a90e2;
+}
+
+.delete-icon {
+  color: #e05050;
 }
