@@ -3,7 +3,7 @@ name: Deploy Angular to S3
 on:
   push:
     branches:
-      - main    #v8
+      - main   #v9
 
 jobs:
   deploy:
@@ -34,20 +34,7 @@ jobs:
           else
             echo "⚠️  Build falló, creando contenido de respaldo"
             mkdir -p dist/browser
-            cat > dist/browser/index.html << 'EOF'
-<!DOCTYPE html>
-<html>
-<head>
-    <title>App Angular</title>
-    <style>body{font-family:Arial,sans-serif;margin:40px;text-align:center}</style>
-</head>
-<body>
-    <h1>🚀 Aplicación Angular</h1>
-    <p>El despliegue automático está configurado</p>
-    <p>El build completo estará disponible pronto</p>
-</body>
-</html>
-EOF
+            echo '<!DOCTYPE html><html><head><title>App Angular</title><style>body{font-family:Arial,sans-serif;margin:40px;text-align:center}</style></head><body><h1>🚀 Aplicación Angular</h1><p>El despliegue automático está configurado</p><p>El build completo estará disponible pronto</p></body></html>' > dist/browser/index.html
             echo "📁 Contenido de respaldo creado en dist/browser/"
           fi
 
