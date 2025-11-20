@@ -1,0 +1,124 @@
+<div class="container-page">
+  <!-- Header -->
+  <div class="form-header">
+    <button class="back-button" (click)="onCancel()">
+      <span class="back-icon">←</span>
+      Volver
+    </button>
+    <h1 class="form-title">🍽️ {{ isEditing ? 'Editar Receta' : 'CREAR RECETA' }}</h1>
+    <p class="form-subtitle">{{ isEditing ? 'Modifica la información de la receta' : 'Completa el formulario para crear una nueva receta' }}</p>
+  </div>
+
+  <!-- Formulario -->
+  <div class="form-container">
+    <form class="form" (ngSubmit)="onSubmit()">
+      <div class="form-section">
+        <h2 class="section-title">NUEVA RECETA</h2>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">
+          <span class="label-icon">📝</span>
+          Nombre de la receta:
+        </label>
+        <input 
+          type="text" 
+          [(ngModel)]="formData.name" 
+          name="name" 
+          class="form-input" 
+          placeholder="Ej: Ensalada de Quinoa"
+          required
+        >
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">
+          <span class="label-icon">🍳</span>
+          Tipo de cocina:
+        </label>
+        <select [(ngModel)]="formData.tipoCocina" name="tipoCocina" class="form-select" required>
+          <option value="">Seleccione un tipo</option>
+          <option *ngFor="let category of categories" [value]="category">
+            {{ category }}
+          </option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">
+          <span class="label-icon">🥘</span>
+          Ingredientes:
+        </label>
+        <textarea 
+          [(ngModel)]="formData.ingredientes" 
+          name="ingredientes" 
+          class="form-textarea" 
+          placeholder="Ej: 200g quinoa cocida, 1 pepino picado, 2 tomates picados"
+          rows="4"
+          required
+        ></textarea>
+        <small class="form-hint">Separa los ingredientes con comas o saltos de línea</small>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">
+          <span class="label-icon">🔥</span>
+          Calorías:
+        </label>
+        <input 
+          type="number" 
+          [(ngModel)]="formData.calorias" 
+          name="calorias" 
+          class="form-input" 
+          placeholder="Ej: 350"
+          min="0"
+          required
+        >
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">
+          <span class="label-icon">💰</span>
+          Costo estimado:
+        </label>
+        <input 
+          type="number" 
+          [(ngModel)]="formData.costoEstimado" 
+          name="costoEstimado" 
+          class="form-input" 
+          placeholder="Ej: 18000"
+          min="0"
+          step="0.01"
+          required
+        >
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">
+          <span class="label-icon">⏱️</span>
+          Tiempo de preparación:
+        </label>
+        <input 
+          type="number" 
+          [(ngModel)]="formData.tiempoPreparacion" 
+          name="tiempoPreparacion" 
+          class="form-input" 
+          placeholder="Ej: 30 (en minutos)"
+          min="0"
+          required
+        >
+      </div>
+
+      <div class="form-actions">
+        <button type="button" (click)="onCancel()" class="btn-cancel">
+          Cancelar
+        </button>
+        <button type="submit" class="btn-save">
+          <span class="save-icon">✓</span>
+          Guardar receta
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+

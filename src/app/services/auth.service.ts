@@ -78,6 +78,51 @@ export class AuthService {
    * Iniciar sesión con email y contraseña
    */
   login(email: string, password: string): Observable<LoginResponse> {
+    // Credenciales demo para desarrollo
+    const demoUsers: { [key: string]: { password: string; user: User } } = {
+      'admin@recetario.com': {
+        password: '123456',
+        user: {
+          id: '1',
+          email: 'admin@recetario.com',
+          nombre: 'Administrador',
+          full_name: 'Administrador',
+          rol: 'Administrador',
+          role: 'Administrador',
+          username: 'admin'
+        }
+      },
+      'chef@recetario.com': {
+        password: 'chef123',
+        user: {
+          id: '2',
+          email: 'chef@recetario.com',
+          nombre: 'Chef',
+          full_name: 'Chef',
+          rol: 'Chef',
+          role: 'Chef',
+          username: 'chef'
+        }
+      }
+    };
+
+    // Verificar si son credenciales demo
+    if (demoUsers[email] && demoUsers[email].password === password) {
+      const demoUser = demoUsers[email].user;
+      const mockResponse: LoginResponse = {
+        access_token: 'demo_token_' + Date.now(),
+        token_type: 'Bearer',
+        user: demoUser
+      };
+      
+      this.saveToken(mockResponse.access_token);
+      this.normalizeUser(demoUser);
+      this.setAuthState(true, demoUser);
+      
+      return of(mockResponse);
+    }
+
+    // Intentar login con el backend
     return this.http.post<LoginResponse>(`${this.apiUrl}/login`, { email, password }).pipe(
       tap(response => {
         if (response.access_token) {
@@ -93,6 +138,21 @@ export class AuthService {
       }),
       catchError(error => {
         console.error('Error en login:', error);
+        // Si falla el backend y son credenciales demo, usar modo demo
+        if (demoUsers[email] && demoUsers[email].password === password) {
+          const demoUser = demoUsers[email].user;
+          const mockResponse: LoginResponse = {
+            access_token: 'demo_token_' + Date.now(),
+            token_type: 'Bearer',
+            user: demoUser
+          };
+          
+          this.saveToken(mockResponse.access_token);
+          this.normalizeUser(demoUser);
+          this.setAuthState(true, demoUser);
+          
+          return of(mockResponse);
+        }
         throw error;
       })
     );
