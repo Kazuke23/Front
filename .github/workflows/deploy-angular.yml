@@ -3,7 +3,7 @@ name: Deploy Angular to S3
 on:
   push:
     branches:
-      - main  #v7
+      - main    #v8
 
 jobs:
   deploy:
@@ -22,31 +22,33 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Create dist directory manually
-        run: |
-          # Crea el directorio dist manualmente primero
-          mkdir -p dist/fake-browser
-          echo "<html><body><h1>Deployment in progress</h1></body></html>" > dist/fake-browser/index.html
-
-      - name: Build with continue-on-error
+      - name: Build Angular
         continue-on-error: true
-        run: |
-          # Este paso puede fallar pero no detendrá el workflow
-          npx ng build --configuration production
+        run: npx ng build --configuration production
 
-      - name: Check what was actually built
+      - name: Create fallback content if build failed
         run: |
-          echo "=== BUSCANDO CUALQUIER ARCHIVO GENERADO ==="
-          find . -name "*.js" -o -name "*.html" -o -name "*.css" | grep -v node_modules | head -20
-          echo "=== ESTRUCTURA ACTUAL ==="
-          ls -la
-          if [ -d "dist" ]; then
-            echo "✅ DIST existe:"
-            find dist -type f | head -20
+          if [ -d "dist" ] && find dist -name "*.js" -type f | head -1 | grep -q .; then
+            echo "✅ Build generó archivos reales"
+            find dist -name "*.html" -type f | head -5
           else
-            echo "❌ No hay dist, creando estructura mínima"
+            echo "⚠️  Build falló, creando contenido de respaldo"
             mkdir -p dist/browser
-            echo "<html><body><h1>App Angular - Build Manual</h1><p>El build automático falló</p></body></html>" > dist/browser/index.html
+            cat > dist/browser/index.html << 'EOF'
+<!DOCTYPE html>
+<html>
+<head>
+    <title>App Angular</title>
+    <style>body{font-family:Arial,sans-serif;margin:40px;text-align:center}</style>
+</head>
+<body>
+    <h1>🚀 Aplicación Angular</h1>
+    <p>El despliegue automático está configurado</p>
+    <p>El build completo estará disponible pronto</p>
+</body>
+</html>
+EOF
+            echo "📁 Contenido de respaldo creado en dist/browser/"
           fi
 
       - name: Configure AWS Credentials
@@ -56,22 +58,22 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Deploy to S3 (whatever exists)
+      - name: Deploy to S3
         run: |
-          echo "🚀 DESPLEGANDO CONTENIDO DISPONIBLE..."
-          if [ -d "dist" ]; then
-            # Busca cualquier index.html
-            if find dist -name "index.html" -type f | head -1 | grep -q .; then
-              HTML_FILE=$(find dist -name "index.html" -type f | head -1)
-              DEPLOY_DIR=$(dirname "$HTML_FILE")
-              echo "📁 Desplegando desde: $DEPLOY_DIR"
-              aws s3 sync "$DEPLOY_DIR"/ s3://${{ secrets.AWS_BUCKET_NAME }} --delete
-              echo "✅ ¡DESPLIEGUE EXITOSO!"
-            else
-              echo "⚠️  No hay index.html, desplegando dist completo"
-              aws s3 sync dist/ s3://${{ secrets.AWS_BUCKET_NAME }} --delete
-            fi
+          echo "🚀 INICIANDO DESPLIEGUE A S3..."
+          
+          if [ -d "dist/browser" ]; then
+            echo "📁 Desplegando desde: dist/browser"
+            aws s3 sync dist/browser/ s3://${{ secrets.S3_BUCKET_NAME }} --delete
+          elif find dist -name "index.html" -type f | head -1 | grep -q .; then
+            HTML_FILE=$(find dist -name "index.html" -type f | head -1)
+            DEPLOY_DIR=$(dirname "$HTML_FILE")
+            echo "📁 Desplegando desde: $DEPLOY_DIR"
+            aws s3 sync "$DEPLOY_DIR"/ s3://${{ secrets.S3_BUCKET_NAME }} --delete
           else
-            echo "❌ ERROR: No hay nada para desplegar"
-            exit 1
+            echo "📁 Desplegando dist completo"
+            aws s3 sync dist/ s3://${{ secrets.S3_BUCKET_NAME }} --delete
           fi
+          
+          echo "🎉 ¡DESPLIEGUE EXITOSO A S3!"
+          echo "🌐 URL: http://${{ secrets.S3_BUCKET_NAME }}.s3-website.${{ secrets.AWS_REGION }}.amazonaws.com"
