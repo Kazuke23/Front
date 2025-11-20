@@ -1,7 +1,7 @@
 :host {
   display: block;
   padding: 32px;
-  background: radial-gradient(circle at top, rgba(249, 115, 22, 0.08), transparent 55%), #f8fafc;
+  background: radial-gradient(circle at top, rgba(233, 30, 99, 0.08), transparent 55%), #F5F5F5;
   min-height: 100vh;
   animation: fadeIn 0.6s ease;
 }
@@ -30,7 +30,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(125deg, rgba(249, 115, 22, 0.08), transparent 60%);
+  background: linear-gradient(125deg, rgba(233, 30, 99, 0.08), transparent 60%);
   pointer-events: none;
 }
 
@@ -121,14 +121,14 @@
 
 .stat-card:hover {
   transform: translateY(-6px);
-  box-shadow: 0 30px 60px rgba(249, 115, 22, 0.15);
+  box-shadow: 0 30px 60px rgba(233, 30, 99, 0.15);
 }
 
 .stat-icon {
   width: 48px;
   height: 48px;
   border-radius: 16px;
-  background: linear-gradient(135deg, #f97316, #fb923c);
+  background: linear-gradient(135deg, #E91E63, #FF4081);
   display: grid;
   place-items: center;
   font-size: 1.5rem;
@@ -194,7 +194,7 @@
 
 .search-group input:focus {
   outline: none;
-  border-color: #f97316;
+  border-color: #E91E63;
   box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.15);
 }
 
@@ -310,7 +310,7 @@ td {
 .ingredient-chip small {
   text-transform: uppercase;
   font-size: 0.75rem;
-  color: #f97316;
+  color: #E91E63;
 }
 
 .quantity {
@@ -329,7 +329,7 @@ td {
 
 .progress {
   height: 100%;
-  background: linear-gradient(135deg, #f97316, #fb923c);
+  background: linear-gradient(135deg, #E91E63, #FF4081);
   border-radius: inherit;
   transition: width 0.4s ease;
 }
@@ -353,7 +353,7 @@ td {
 
 .badge.básicos,
 .badge.basicos {
-  background: rgba(14, 165, 233, 0.15);
+  background: rgba(233, 30, 99, 0.15);
   color: #0369a1;
 }
 
@@ -407,7 +407,7 @@ button {
 }
 
 button.primary {
-  background: linear-gradient(135deg, #f97316, #fb923c);
+  background: linear-gradient(135deg, #E91E63, #FF4081);
   color: white;
   box-shadow: 0 15px 30px rgba(249, 115, 22, 0.3);
 }
@@ -517,7 +517,7 @@ button.ghost {
   text-transform: uppercase;
   letter-spacing: 0.12em;
   font-size: 0.7rem;
-  color: #f97316;
+  color: #E91E63;
   font-weight: 700;
 }
 

@@ -1,7 +1,7 @@
 :host {
   display: block;
   padding: 32px;
-  background: radial-gradient(circle at top, rgba(14, 165, 233, 0.08), transparent 55%), #f8fafc;
+  background: radial-gradient(circle at top, rgba(233, 30, 99, 0.08), transparent 55%), #F5F5F5;
   min-height: 100vh;
   animation: fadeIn 0.6s ease;
 }
@@ -39,7 +39,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(125deg, rgba(14, 165, 233, 0.08), transparent 60%);
+  background: linear-gradient(125deg, rgba(233, 30, 99, 0.08), transparent 60%);
   pointer-events: none;
 }
 
@@ -49,7 +49,7 @@
 }
 
 .eyebrow {
-  color: #0ea5e9;
+  color: #E91E63;
   font-weight: 600;
   font-size: 0.9rem;
   text-transform: uppercase;
@@ -80,7 +80,7 @@
 }
 
 button.primary {
-  background: linear-gradient(135deg, #0ea5e9, #3b82f6);
+  background: linear-gradient(135deg, #E91E63, #FF4081);
   color: white;
   border: none;
   padding: 14px 28px;
@@ -92,12 +92,12 @@ button.primary {
   align-items: flex-start;
   gap: 4px;
   transition: all 0.3s ease;
-  box-shadow: 0 15px 30px rgba(14, 165, 233, 0.3);
+  box-shadow: 0 15px 30px rgba(233, 30, 99, 0.3);
 }
 
 button.primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 20px 40px rgba(14, 165, 233, 0.4);
+  box-shadow: 0 20px 40px rgba(233, 30, 99, 0.4);
 }
 
 button.primary span {
@@ -110,9 +110,9 @@ button.primary small {
 }
 
 button.ghost {
-  background: rgba(14, 165, 233, 0.1);
-  color: #0ea5e9;
-  border: 1px solid rgba(14, 165, 233, 0.2);
+  background: rgba(233, 30, 99, 0.1);
+  color: #E91E63;
+  border: 1px solid rgba(233, 30, 99, 0.2);
   padding: 14px 24px;
   border-radius: 12px;
   font-weight: 600;
@@ -121,7 +121,7 @@ button.ghost {
 }
 
 button.ghost:hover {
-  background: rgba(14, 165, 233, 0.15);
+  background: rgba(233, 30, 99, 0.15);
 }
 
 .hero-image {
@@ -170,7 +170,7 @@ button.ghost:hover {
 
 .overlay-card strong {
   font-size: 1.8rem;
-  color: #0ea5e9;
+  color: #E91E63;
   display: block;
   font-weight: 700;
 }
@@ -207,7 +207,7 @@ button.ghost:hover {
   width: 64px;
   height: 64px;
   border-radius: 16px;
-  background: linear-gradient(135deg, #0ea5e9, #3b82f6);
+  background: linear-gradient(135deg, #E91E63, #FF4081);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -284,8 +284,8 @@ button.ghost:hover {
 
 .search-group input:focus {
   outline: none;
-  border-color: #0ea5e9;
-  box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.1);
+  border-color: #E91E63;
+  box-shadow: 0 0 0 4px rgba(233, 30, 99, 0.1);
 }
 
 .search-icon {
@@ -315,13 +315,13 @@ button.ghost:hover {
 
 .filters select:focus {
   outline: none;
-  border-color: #0ea5e9;
+  border-color: #E91E63;
 }
 
 button.primary.ghosty {
-  background: rgba(14, 165, 233, 0.1);
-  color: #0ea5e9;
-  border: 2px solid rgba(14, 165, 233, 0.2);
+  background: rgba(233, 30, 99, 0.1);
+  color: #E91E63;
+  border: 2px solid rgba(233, 30, 99, 0.2);
   padding: 10px 20px;
   border-radius: 10px;
   font-weight: 600;
@@ -330,7 +330,7 @@ button.primary.ghosty {
 }
 
 button.primary.ghosty:hover {
-  background: rgba(14, 165, 233, 0.15);
+  background: rgba(233, 30, 99, 0.15);
 }
 
 .table-wrapper {
@@ -343,7 +343,7 @@ table {
 }
 
 table thead {
-  background: linear-gradient(135deg, #0ea5e9, #3b82f6);
+  background: linear-gradient(135deg, #E91E63, #FF4081);
   color: white;
 }
 
@@ -367,8 +367,8 @@ table tbody tr:hover {
 }
 
 table tbody tr.selected {
-  background: #eff6ff;
-  border-left: 4px solid #0ea5e9;
+  background: #F8BBD0;
+  border-left: 4px solid #E91E63;
 }
 
 table td {
@@ -387,7 +387,7 @@ table td {
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  background: linear-gradient(135deg, #0ea5e9, #3b82f6);
+  background: linear-gradient(135deg, #E91E63, #FF4081);
   color: white;
   display: flex;
   align-items: center;
@@ -398,7 +398,7 @@ table td {
 }
 
 .item-info strong {
-  color: #0ea5e9;
+  color: #E91E63;
   font-weight: 700;
   font-size: 1rem;
 }
@@ -441,7 +441,7 @@ table td {
 
 .progress {
   height: 100%;
-  background: linear-gradient(135deg, #0ea5e9, #3b82f6);
+  background: linear-gradient(135deg, #E91E63, #FF4081);
   border-radius: 3px;
   transition: width 0.3s ease;
 }

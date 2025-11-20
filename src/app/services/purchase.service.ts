@@ -54,72 +54,94 @@ export class PurchaseService {
 
   // POST /purchases
   create(order: Omit<PurchaseOrder, 'id'>): Observable<PurchaseOrder> {
+    // Crear inmediatamente en el estado local con ID temporal
+    const tempId = this.generateId();
+    const tempOrder: PurchaseOrder = {
+      ...order,
+      id: tempId
+    };
+    const updated = [tempOrder, ...this.purchaseSubject.value];
+    this.purchaseSubject.next(updated);
+    this.persist();
+
+    // Luego intentar crear en el backend
     return this.http.post<PurchaseOrder>(`${API_BASE_URL}/purchases`, order).pipe(
       tap(newOrder => {
-        const updated = [newOrder, ...this.purchaseSubject.value];
-        this.purchaseSubject.next(updated);
-        this.persist();
+        // Reemplazar la orden temporal con la del backend
+        const orders = this.purchaseSubject.value;
+        const index = orders.findIndex(o => o.id === tempId);
+        if (index !== -1) {
+          const finalUpdated = [...orders];
+          finalUpdated[index] = newOrder;
+          this.purchaseSubject.next(finalUpdated);
+          this.persist();
+        } else {
+          // Si no se encuentra la temporal, agregar la nueva
+          const finalUpdated = [newOrder, ...this.purchaseSubject.value.filter(o => o.id !== tempId)];
+          this.purchaseSubject.next(finalUpdated);
+          this.persist();
+        }
       }),
       catchError(error => {
-        console.error('Error al crear orden:', error);
-        // Si falla, crear localmente como fallback
-        const newOrder: PurchaseOrder = {
-          ...order,
-          id: this.generateId()
-        };
-        const updated = [newOrder, ...this.purchaseSubject.value];
-        this.purchaseSubject.next(updated);
-        this.persist();
-        return of(newOrder);
+        console.error('Error al crear orden en el backend:', error);
+        // Ya se creó localmente, así que está bien
+        return of(tempOrder);
       })
     );
   }
 
   // PUT /purchases/{id}
   update(id: string, changes: Partial<PurchaseOrder>): Observable<PurchaseOrder> {
+    // Actualizar inmediatamente en el estado local
+    const orders = this.purchaseSubject.value;
+    const index = orders.findIndex(order => order.id === id);
+    if (index !== -1) {
+      const updatedOrder: PurchaseOrder = { ...orders[index], ...changes };
+      const updated = [...orders];
+      updated[index] = updatedOrder;
+      this.purchaseSubject.next(updated);
+      this.persist();
+    }
+
+    // Luego intentar actualizar en el backend
     return this.http.put<PurchaseOrder>(`${API_BASE_URL}/purchases/${id}`, changes).pipe(
-      tap(updatedOrder => {
+      tap(backendOrder => {
+        // Actualizar con la respuesta del backend
         const orders = this.purchaseSubject.value;
         const index = orders.findIndex(order => order.id === id);
         if (index !== -1) {
           const updated = [...orders];
-          updated[index] = updatedOrder;
+          updated[index] = backendOrder;
           this.purchaseSubject.next(updated);
           this.persist();
         }
       }),
       catchError(error => {
-        console.error('Error al actualizar orden:', error);
-        // Si falla, actualizar localmente como fallback
+        console.error('Error al actualizar orden del backend:', error);
+        // Ya se actualizó localmente, así que está bien
         const orders = this.purchaseSubject.value;
-        const index = orders.findIndex(order => order.id === id);
-        if (index !== -1) {
-          const updatedOrder: PurchaseOrder = { ...orders[index], ...changes };
-          const updated = [...orders];
-          updated[index] = updatedOrder;
-          this.purchaseSubject.next(updated);
-          this.persist();
-          return of(updatedOrder);
-        }
-        throw error;
+        const order = orders.find(o => o.id === id);
+        return order ? of(order) : of(null as any);
       })
     );
   }
 
   // DELETE /purchases/{id}
   delete(id: string): Observable<void> {
+    // Primero eliminar del estado local para respuesta inmediata
+    const updated = this.purchaseSubject.value.filter(order => order.id !== id);
+    this.purchaseSubject.next(updated);
+    this.persist();
+
+    // Luego intentar eliminar en el backend
     return this.http.delete<void>(`${API_BASE_URL}/purchases/${id}`).pipe(
       tap(() => {
-        const updated = this.purchaseSubject.value.filter(order => order.id !== id);
-        this.purchaseSubject.next(updated);
-        this.persist();
+        // Ya se eliminó localmente, solo confirmar
+        console.log('Orden eliminada del backend');
       }),
       catchError(error => {
-        console.error('Error al eliminar orden:', error);
-        // Si falla, eliminar localmente como fallback
-        const updated = this.purchaseSubject.value.filter(order => order.id !== id);
-        this.purchaseSubject.next(updated);
-        this.persist();
+        console.error('Error al eliminar orden del backend:', error);
+        // Ya se eliminó localmente, así que está bien
         return of(void 0);
       })
     );

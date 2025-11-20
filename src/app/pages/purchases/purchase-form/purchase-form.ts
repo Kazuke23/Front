@@ -4,6 +4,7 @@ import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } fr
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { PurchaseService } from '../../../services/purchase.service';
+import { NotificationService } from '../../../services/notification.service';
 import {
   PurchaseOrder,
   PurchaseItem,
@@ -42,7 +43,8 @@ export class PurchaseFormComponent implements OnInit, OnDestroy {
     private fb: FormBuilder,
     private router: Router,
     private route: ActivatedRoute,
-    private purchaseService: PurchaseService
+    private purchaseService: PurchaseService,
+    private notificationService: NotificationService
   ) {
     this.restaurants = this.purchaseService.getRestaurants();
     this.suppliers = this.purchaseService.getSuppliers();
@@ -120,8 +122,8 @@ export class PurchaseFormComponent implements OnInit, OnDestroy {
     this.purchaseService.getById(id).subscribe({
       next: (order) => {
         if (!order) {
-          alert('No se encontró la orden solicitada.');
-          this.router.navigate(['/compras']);
+          this.notificationService.warning('No se encontró la orden solicitada.');
+          setTimeout(() => this.router.navigate(['/compras']), 1500);
           return;
         }
         this.currentOrder = order;
@@ -152,8 +154,8 @@ export class PurchaseFormComponent implements OnInit, OnDestroy {
         // Si falla, intentar con datos locales
         const localOrder = this.purchaseService.getByIdSync(id);
         if (!localOrder) {
-          alert('No se encontró la orden solicitada.');
-          this.router.navigate(['/compras']);
+          this.notificationService.warning('No se encontró la orden solicitada.');
+          setTimeout(() => this.router.navigate(['/compras']), 1500);
           return;
         }
         this.currentOrder = localOrder;
@@ -187,7 +189,7 @@ export class PurchaseFormComponent implements OnInit, OnDestroy {
     if (this.form.invalid || this.itemsFormArray.length === 0) {
       this.form.markAllAsTouched();
       if (this.itemsFormArray.length === 0) {
-        alert('Debe agregar al menos un ítem a la compra.');
+        this.notificationService.warning('Debe agregar al menos un ítem a la compra.');
       }
       return;
     }
@@ -209,23 +211,26 @@ export class PurchaseFormComponent implements OnInit, OnDestroy {
     };
 
     if (this.isEditMode && this.currentOrder) {
-      this.purchaseService.update(this.currentOrder.id, payload).subscribe({
+      const orderId = this.currentOrder.id;
+      this.purchaseService.update(orderId, payload).subscribe({
         next: () => {
-          this.router.navigate(['/compras']);
+          this.notificationService.success(`¡Orden #${orderId} actualizada exitosamente!`);
+          setTimeout(() => this.router.navigate(['/compras']), 1500);
         },
         error: (error) => {
           console.error('Error al actualizar orden:', error);
-          alert('Error al actualizar la orden. Por favor, intente nuevamente.');
+          this.notificationService.error('No se pudo actualizar la orden. Por favor, intente nuevamente.');
         }
       });
     } else {
       this.purchaseService.create(payload).subscribe({
         next: () => {
-          this.router.navigate(['/compras']);
+          this.notificationService.success('¡Nueva orden de compra creada exitosamente!');
+          setTimeout(() => this.router.navigate(['/compras']), 1500);
         },
         error: (error) => {
           console.error('Error al crear orden:', error);
-          alert('Error al crear la orden. Por favor, intente nuevamente.');
+          this.notificationService.error('No se pudo crear la orden. Por favor, intente nuevamente.');
         }
       });
     }

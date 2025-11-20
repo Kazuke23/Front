@@ -65,72 +65,97 @@ export class InventoryService {
 
   // POST /inventory
   create(item: Omit<InventoryItem, 'id'>): Observable<InventoryItem> {
+    // Crear inmediatamente en el estado local con ID temporal
+    const tempId = this.generateId();
+    const tempItem: InventoryItem = {
+      ...item,
+      id: tempId
+    };
+    const updated = [tempItem, ...this.inventorySubject.value];
+    this.inventorySubject.next(updated);
+    this.persist();
+
+    // Luego intentar crear en el backend
     return this.http.post<InventoryItem>(`${API_BASE_URL}/inventory`, item).pipe(
       tap(newItem => {
-        const updated = [newItem, ...this.inventorySubject.value];
-        this.inventorySubject.next(updated);
-        this.persist();
+        // Reemplazar el item temporal con el del backend
+        const items = this.inventorySubject.value;
+        const index = items.findIndex(i => i.id === tempId);
+        if (index !== -1) {
+          const finalUpdated = [...items];
+          finalUpdated[index] = newItem;
+          this.inventorySubject.next(finalUpdated);
+          this.persist();
+        } else {
+          // Si no se encuentra el temporal, agregar el nuevo
+          const finalUpdated = [newItem, ...this.inventorySubject.value.filter(i => i.id !== tempId)];
+          this.inventorySubject.next(finalUpdated);
+          this.persist();
+        }
       }),
       catchError(error => {
-        console.error('Error al crear item:', error);
-        // Si falla, crear localmente como fallback
-        const newItem: InventoryItem = {
-          ...item,
-          id: this.generateId()
-        };
-        const updated = [newItem, ...this.inventorySubject.value];
-        this.inventorySubject.next(updated);
-        this.persist();
-        return of(newItem);
+        console.error('Error al crear item en el backend:', error);
+        // Ya se creó localmente, así que está bien
+        return of(tempItem);
       })
     );
   }
 
   // PUT /inventory/{id} - Solo se puede actualizar la cantidad
   updateQuantity(id: string, quantity: number): Observable<InventoryItem> {
+    // Actualizar inmediatamente en el estado local
+    const items = this.inventorySubject.value;
+    const index = items.findIndex(item => item.id === id);
+    if (index !== -1) {
+      const updatedItem: InventoryItem = { ...items[index], quantity };
+      const updated = [...items];
+      updated[index] = updatedItem;
+      this.inventorySubject.next(updated);
+      this.persist();
+    }
+
+    // Luego intentar actualizar en el backend
     return this.http.put<InventoryItem>(`${API_BASE_URL}/inventory/${id}`, { quantity }).pipe(
-      tap(updatedItem => {
+      tap(backendItem => {
+        // Actualizar con la respuesta del backend
         const items = this.inventorySubject.value;
         const index = items.findIndex(item => item.id === id);
         if (index !== -1) {
           const updated = [...items];
-          updated[index] = updatedItem;
+          updated[index] = backendItem;
           this.inventorySubject.next(updated);
           this.persist();
         }
       }),
       catchError(error => {
-        console.error('Error al actualizar item:', error);
-        // Si falla, actualizar localmente como fallback
+        console.error('Error al actualizar item del backend:', error);
+        // Ya se actualizó localmente, así que está bien
         const items = this.inventorySubject.value;
-        const index = items.findIndex(item => item.id === id);
-        if (index !== -1) {
-          const updatedItem: InventoryItem = { ...items[index], quantity };
-          const updated = [...items];
-          updated[index] = updatedItem;
-          this.inventorySubject.next(updated);
-          this.persist();
-          return of(updatedItem);
-        }
-        throw error;
+        const item = items.find(i => i.id === id);
+        return item ? of(item) : of(null as any);
       })
     );
   }
 
   // DELETE /inventory/{id}
   delete(id: string): Observable<void> {
+    // Crear nuevo array para forzar detección de cambios
+    const currentItems = [...this.inventorySubject.value];
+    const updated = currentItems.filter(item => item.id !== id);
+    
+    // Actualizar BehaviorSubject inmediatamente con nuevo array
+    this.inventorySubject.next([...updated]);
+    this.persist();
+
+    // Luego intentar eliminar en el backend
     return this.http.delete<void>(`${API_BASE_URL}/inventory/${id}`).pipe(
       tap(() => {
-        const updated = this.inventorySubject.value.filter(item => item.id !== id);
-        this.inventorySubject.next(updated);
-        this.persist();
+        // Ya se eliminó localmente, solo confirmar
+        console.log('Item eliminado del backend');
       }),
       catchError(error => {
-        console.error('Error al eliminar item:', error);
-        // Si falla, eliminar localmente como fallback
-        const updated = this.inventorySubject.value.filter(item => item.id !== id);
-        this.inventorySubject.next(updated);
-        this.persist();
+        console.error('Error al eliminar item del backend:', error);
+        // Ya se eliminó localmente, así que está bien
         return of(void 0);
       })
     );

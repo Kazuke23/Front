@@ -33,19 +33,6 @@
     </div>
   </section>
 
-  <section class="stats-grid">
-    <article class="stat-card" *ngFor="let card of statCards">
-      <div class="stat-icon">{{ card.icon }}</div>
-      <div>
-        <p>{{ card.label }}</p>
-        <strong>{{ card.value }}</strong>
-        <span [class.positive]="card.trend > 0" [class.negative]="card.trend < 0">
-          {{ card.trend > 0 ? '+' : ''}}{{ card.trend }}%
-        </span>
-      </div>
-    </article>
-  </section>
-
   <section class="inventory-layout">
     <div class="inventory-panel">
       <header class="panel-header">

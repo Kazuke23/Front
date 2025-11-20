@@ -1,0 +1,17 @@
+<div class="dialog-backdrop" [class.visible]="visible" (click)="onBackdropClick($event)">
+  <div class="dialog-container" [class.visible]="visible" [class.danger]="type === 'danger'" [class.warning]="type === 'warning'" [class.info]="type === 'info'">
+    <div class="dialog-icon">
+      <span *ngIf="type === 'danger'">🗑️</span>
+      <span *ngIf="type === 'warning'">⚠️</span>
+      <span *ngIf="type === 'info'">ℹ️</span>
+    </div>
+    <h2 class="dialog-title">{{ title }}</h2>
+    <p class="dialog-message">{{ message }}</p>
+    <div class="dialog-actions">
+      <button class="btn-cancel" (click)="cancel()">{{ cancelText }}</button>
+      <button class="btn-confirm" [class.danger]="type === 'danger'" [class.warning]="type === 'warning'" (click)="confirm()">{{ confirmText }}</button>
+    </div>
+  </div>
+</div>
+
+
