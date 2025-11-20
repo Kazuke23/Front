@@ -3,7 +3,7 @@ name: Deploy Angular to S3
 on:
   push:
     branches:
-      - main  # Si usas main, cambia esto a 'main'
+      - develop
 
 jobs:
   deploy:
@@ -22,16 +22,15 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Build Angular
-        run: npm run build
+      - name: Build Angular (CLIENT ONLY - No SSR)
+        run: npm run build -- --configuration=production --no-ssr
 
       - name: Debug build output
         run: |
-          echo "=== Buscando archivos build ==="
-          find . -name "index.html" -type f | grep dist || echo "No se encontró index.html en dist"
           echo "=== Estructura de dist ==="
-          ls -la dist/ || echo "No existe dist"
-          find dist -type f | head -10
+          ls -la dist/
+          echo "=== Buscando index.html ==="
+          find dist -name "index.html" -type f
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -40,20 +39,17 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Test AWS connection
-        run: |
-          aws s3 ls s3://${{ secrets.AWS_BUCKET_NAME }}/ || echo "⚠️  No se puede listar bucket, pero puede que aún funcione"
-
       - name: Deploy to S3
         run: |
-          # Encuentra automáticamente la ruta correcta
-          if find dist -name "index.html" -type f | grep -q .; then
-            BUILD_DIR=$(find dist -name "index.html" -type f | head -1 | xargs dirname)
-            echo "📁 Directorio de build encontrado: $BUILD_DIR"
-            aws s3 sync "$BUILD_DIR"/ s3://${{ secrets.AWS_BUCKET_NAME }} --delete
+          # Busca la carpeta del build del cliente
+          if [ -d "dist/frontend/browser" ]; then
+            echo "📁 Usando: dist/frontend/browser"
+            aws s3 sync dist/frontend/browser/ s3://${{ secrets.AWS_BUCKET_NAME }} --delete
+          elif [ -d "dist/browser" ]; then
+            echo "📁 Usando: dist/browser"
+            aws s3 sync dist/browser/ s3://${{ secrets.AWS_BUCKET_NAME }} --delete
           else
-            echo "❌ No se encontró index.html en dist/"
-            echo "=== Contenido actual ==="
-            ls -la
+            echo "❌ No se encontró la carpeta del build"
+            find dist -type f -name "index.html" | head -5
             exit 1
           fi
