@@ -3,17 +3,18 @@ name: Deploy Angular to S3
 on:
   push:
     branches:
-      - main #v13
+      - main  # ✅ Se ejecuta en main v14
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      - name: Checkout repo (CURRENT branch - main)
         uses: actions/checkout@v3
+        # ✅ NO necesita 'ref' porque YA está en main
 
-      - name: Set up Node.js
+      - name: Set up Node.js 20
         uses: actions/setup-node@v3
         with:
           node-version: 20
@@ -22,21 +23,20 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Build only the browser bundle (NO SSR)
-        run: |
-          # Build solo del cliente - ignora completamente el SSR
-          npx ng build --configuration production --output-hashing=all
+      - name: Build Angular
+        run: npx ng build --configuration production
 
       - name: Verify build output
         run: |
-          echo "=== ESTRUCTURA GENERADA ==="
-          ls -la
+          echo "=== ¿SE GENERÓ DIST? ==="
           if [ -d "dist" ]; then
-            echo "✅ DIST existe:"
-            find dist -type f | head -20
+            echo "✅ DIST EXISTE:"
+            find dist -type f | head -10
           else
-            echo "❌ No hay dist, buscando en otras ubicaciones..."
-            find . -name "*.html" -type f | grep -v node_modules
+            echo "❌ NO HAY DIST - El build falló completamente"
+            echo "=== ARCHIVOS ACTUALES ==="
+            ls -la
+            exit 1
           fi
 
       - name: Configure AWS Credentials
@@ -48,21 +48,6 @@ jobs:
 
       - name: Deploy to S3
         run: |
-          echo "🚀 DESPLEGANDO ARCHIVOS..."
-          
-          # Busca la carpeta correcta del build
-          if [ -d "dist/frontend/browser" ]; then
-            echo "📁 Usando: dist/frontend/browser"
-            aws s3 sync dist/frontend/browser/ s3://${{ secrets.S3_BUCKET_NAME }} --delete
-          elif [ -d "dist/browser" ]; then
-            echo "📁 Usando: dist/browser"
-            aws s3 sync dist/browser/ s3://${{ secrets.S3_BUCKET_NAME }} --delete
-          elif [ -d "dist/frontend" ]; then
-            echo "📁 Usando: dist/frontend"
-            aws s3 sync dist/frontend/ s3://${{ secrets.S3_BUCKET_NAME }} --delete
-          else
-            echo "📁 Usando: dist/"
-            aws s3 sync dist/ s3://${{ secrets.S3_BUCKET_NAME }} --delete
-          fi
-          
+          echo "🚀 DESPLEGANDO A S3..."
+          aws s3 sync dist/ s3://${{ secrets.S3_BUCKET_NAME }} --delete
           echo "🎉 ¡DESPLIEGUE EXITOSO!"
