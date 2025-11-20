@@ -28,9 +28,13 @@ export const routes: Routes = [
     data: { roles: ['Administrador'] } // Solo administradores
   },
   
-  { 
-    path: 'recetas', 
-    loadComponent: () => import('./pages/recipes/recipes').then(m => m.RecipesComponent),
+  {
+    path: 'recetas',
+    children: [
+      { path: '', loadComponent: () => import('./pages/recipes/recipe-list/recipe-list').then(m => m.RecipeListComponent) },
+      { path: 'create', loadComponent: () => import('./pages/recipes/recipe-create/recipe-create').then(m => m.RecipeCreateComponent) },
+      { path: 'edit/:id', loadComponent: () => import('./pages/recipes/recipe-create/recipe-create').then(m => m.RecipeCreateComponent) }
+    ],
     canActivate: [AuthGuard, RoleGuard],
     data: { roles: ['Administrador', 'Chef'] } // Administradores y Chefs
   },

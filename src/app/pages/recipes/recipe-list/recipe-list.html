@@ -1,0 +1,123 @@
+<div class="container-page">
+  <!-- Header con imagen -->
+  <div class="recipe-header">
+    <div class="header-image">
+      <img src="https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=1200&h=400&fit=crop" alt="Recetas">
+      <div class="header-overlay">
+        <h1 class="page-title">GESTION DE RECETAS</h1>
+        <p class="page-subtitle">Administra y gestiona todas tus recetas</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contenido principal -->
+  <div class="recipe-content">
+    <!-- Barra de acciones -->
+    <div class="actions-bar">
+      <div class="search-container">
+        <span class="search-icon">🔍</span>
+        <input 
+          type="text" 
+          [(ngModel)]="searchTerm" 
+          (input)="onSearch($event)" 
+          class="search-input" 
+          placeholder="Buscar receta"
+        >
+      </div>
+      <a routerLink="/recetas/create" class="btn-new-recipe">
+        <span class="plus-icon">+</span>
+        Crear receta
+      </a>
+    </div>
+
+    <!-- Tabla de recetas -->
+    <div class="table-container" *ngIf="filteredRecipes.length > 0">
+      <table class="recipes-table">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Tipo</th>
+            <th>Ingredientes</th>
+            <th>Calorías</th>
+            <th>Costo</th>
+            <th>Tiempo</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let recipe of filteredRecipes">
+            <td class="recipe-name">{{ recipe.name }}</td>
+            <td class="recipe-type">{{ recipe.category }}</td>
+            <td class="recipe-ingredients">{{ getIngredientsDisplay(recipe) }}</td>
+            <td class="recipe-calories">{{ recipe.calories }} kcal</td>
+            <td class="recipe-cost">{{ recipe.cost | currency:'COP':'symbol':'1.0-0' }}</td>
+            <td class="recipe-time">{{ getPreparationTime(recipe) }}</td>
+            <td class="recipe-actions">
+              <button type="button" class="btn-view" (click)="viewRecipe(recipe)" title="Ver detalles">👁️</button>
+              <button type="button" class="btn-edit" (click)="editRecipe(recipe)" title="Editar">✏️</button>
+              <button type="button" class="btn-delete" (click)="deleteRecipe(recipe)" title="Eliminar">🗑️</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Mensaje cuando no hay recetas -->
+    <div class="empty-state" *ngIf="filteredRecipes.length === 0">
+      <div class="empty-icon">🍽️</div>
+      <h3>{{ searchTerm ? 'No se encontraron recetas' : 'No hay recetas registradas' }}</h3>
+      <p>{{ searchTerm ? 'Intenta con otro término de búsqueda' : 'Crea tu primera receta haciendo clic en "Crear receta"' }}</p>
+      <a routerLink="/recetas/create" class="btn-new-recipe" *ngIf="!searchTerm">
+        <span class="plus-icon">+</span>
+        Crear Primera Receta
+      </a>
+    </div>
+  </div>
+
+  <!-- Modal para ver detalles de la receta -->
+  <div class="modal-overlay" *ngIf="selectedRecipe" (click)="closeView()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>📋 Detalles de la Receta</h2>
+        <button class="close-btn" (click)="closeView()">×</button>
+      </div>
+      <div class="modal-body" *ngIf="selectedRecipe">
+        <div class="detail-section">
+          <h3>{{ selectedRecipe.name }}</h3>
+          <p class="detail-category">{{ selectedRecipe.category }}</p>
+        </div>
+        <div class="detail-section">
+          <div class="detail-item">
+            <span class="detail-label">📊 Calorías:</span>
+            <span class="detail-value">{{ selectedRecipe.calories }} kcal</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">💰 Costo:</span>
+            <span class="detail-value">{{ selectedRecipe.cost | currency:'COP':'symbol':'1.0-0' }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">⏱️ Tiempo:</span>
+            <span class="detail-value">{{ getPreparationTime(selectedRecipe) }}</span>
+          </div>
+        </div>
+        <div class="detail-section">
+          <h4>Ingredientes:</h4>
+          <ul class="detail-list">
+            <li *ngFor="let ingredient of selectedRecipe.ingredients">{{ ingredient }}</li>
+          </ul>
+        </div>
+        <div class="detail-section">
+          <h4>Preparación:</h4>
+          <ol class="detail-list">
+            <li *ngFor="let step of selectedRecipe.preparation">{{ step }}</li>
+          </ol>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-edit" (click)="editRecipe(selectedRecipe); closeView()">✏️ Editar</button>
+          <button type="button" class="btn-delete" (click)="deleteRecipe(selectedRecipe); closeView()">🗑️ Eliminar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
