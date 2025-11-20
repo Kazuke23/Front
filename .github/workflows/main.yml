@@ -25,6 +25,13 @@ jobs:
       - name: Build Angular
         run: npm run build
 
+      - name: Debug build output
+        run: |
+          echo "=== Buscando archivos build ==="
+          find . -name "index.html" -type f | grep dist
+          echo "=== Estructura completa de dist ==="
+          find dist -type f | head -20
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -32,7 +39,17 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
+      - name: Test AWS connection
+        run: |
+          aws s3 ls s3://${{ secrets.AWS_BUCKET_NAME }} || echo "❌ No se puede acceder al bucket"
+
       - name: Deploy to S3
         run: |
-          aws s3 sync dist/frontend/browser/ s3://${{ secrets.AWS_BUCKET_NAME }} --delete
-
+          # Encuentra automáticamente la ruta correcta
+          BUILD_DIR=$(find dist -name "index.html" -type f | head -1 | xargs dirname)
+          if [ -z "$BUILD_DIR" ]; then
+            echo "❌ No se encontró index.html en dist/"
+            exit 1
+          fi
+          echo "📁 Directorio de build encontrado: $BUILD_DIR"
+          aws s3 sync "$BUILD_DIR"/ s3://${{ secrets.AWS_BUCKET_NAME }} --delete --size-only
