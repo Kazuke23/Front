@@ -16,7 +16,7 @@ export interface User {
 }
 
 export interface LoginResponse {
-  access_token: string;
+  token: string;
   token_type: string;
   user?: User;
 }
@@ -59,8 +59,8 @@ export class AuthService {
   register(data: RegisterRequest): Observable<LoginResponse> {
     return this.http.post<LoginResponse>(`${this.apiUrl}/register`, data).pipe(
       tap(response => {
-        if (response.access_token) {
-          this.saveToken(response.access_token);
+        if (response.token) {
+          this.saveToken(response.token);
           if (response.user) {
             this.normalizeUser(response.user);
             this.setAuthState(true, response.user);
@@ -80,14 +80,14 @@ export class AuthService {
   login(email: string, password: string): Observable<LoginResponse> {
     return this.http.post<LoginResponse>(`${this.apiUrl}/login`, { email, password }).pipe(
       tap(response => {
-        if (response.access_token) {
-          this.saveToken(response.access_token);
+        if (response.token) {
+          this.saveToken(response.token);
           if (response.user) {
             this.normalizeUser(response.user);
             this.setAuthState(true, response.user);
           } else {
             // Si no viene el usuario en la respuesta, obtenerlo
-            this.getCurrentUserFromAPI();
+            // this.getCurrentUserFromAPI();
           }
         }
       }),
@@ -123,16 +123,16 @@ export class AuthService {
   /**
    * Obtener usuario actual desde la API
    */
-  private getCurrentUserFromAPI(): void {
-    this.http.get<User>(`${API_CONFIG.baseUrl}/users/me`).pipe(
-      catchError(() => of(null))
-    ).subscribe(user => {
-      if (user) {
-        this.normalizeUser(user);
-        this.setAuthState(true, user);
-      }
-    });
-  }
+  // private getCurrentUserFromAPI(): void {
+  //   this.http.get<User>(`${API_CONFIG.baseUrl}/users/me`).pipe(
+  //     catchError(() => of(null))
+  //   ).subscribe(user => {
+  //     if (user) {
+  //       this.normalizeUser(user);
+  //       this.setAuthState(true, user);
+  //     }
+  //   });
+  // }
 
   /**
    * Cerrar sesión

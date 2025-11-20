@@ -160,7 +160,7 @@ export class Login implements OnInit, OnDestroy {
     
     this.authService.login(email, password).subscribe({
       next: (response) => {
-        if (response.access_token) {
+        if (response.token) {
           this.showSuccessEffects();
           // Navegar inmediatamente sin mostrar alert
           setTimeout(() => {
