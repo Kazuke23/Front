@@ -22,25 +22,18 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Build with custom command (sin SSR)
-        run: |
-          # Intenta diferentes formas de build sin SSR
-          npx ng build --configuration production --prerender=false || \
-          npx ng build --configuration production --ssr=false || \
-          npm run build:client || \
-          (echo "Fallando a build estándar" && npm run build)
+      - name: Build Angular (CLIENT SIDE ONLY)
+        run: npx ng build --configuration production
 
-      - name: Find build directory
+      - name: Debug build output
         run: |
-          echo "=== BUSCANDO ARCHIVOS DE BUILD ==="
-          find . -name "index.html" -type f | head -10
-          echo "=== ESTRUCTURA DIST ==="
+          echo "=== ESTRUCTURA DE DIST ==="
           ls -la dist/
+          echo "=== BUSCANDO INDEX.HTML ==="
+          find dist -name "index.html" -type f
+          echo "=== CONTENIDO DE SUBDIRECTORIOS ==="
           if [ -d "dist/frontend" ]; then
             ls -la dist/frontend/
-          fi
-          if [ -d "dist/browser" ]; then
-            ls -la dist/browser/
           fi
 
       - name: Configure AWS Credentials
@@ -52,25 +45,25 @@ jobs:
 
       - name: Deploy to S3
         run: |
-          # Método robusto para encontrar los archivos
-          if [ -f "dist/frontend/browser/index.html" ]; then
-            echo "📁 Usando: dist/frontend/browser"
+          # Método definitivo para encontrar los archivos
+          if [ -d "dist/frontend/browser" ]; then
+            echo "🚀 Desplegando desde: dist/frontend/browser"
             aws s3 sync dist/frontend/browser/ s3://${{ secrets.AWS_BUCKET_NAME }} --delete
-          elif [ -f "dist/browser/index.html" ]; then
-            echo "📁 Usando: dist/browser"
+          elif [ -d "dist/browser" ]; then
+            echo "🚀 Desplegando desde: dist/browser"
             aws s3 sync dist/browser/ s3://${{ secrets.AWS_BUCKET_NAME }} --delete
-          elif [ -f "dist/frontend/index.html" ]; then
-            echo "📁 Usando: dist/frontend"
-            aws s3 sync dist/frontend/ s3://${{ secrets.AWS_BUCKET_NAME }} --delete
           else
-            # Encuentra cualquier index.html en dist
-            INDEX_FILE=$(find dist -name "index.html" -type f | head -1)
-            if [ -n "$INDEX_FILE" ]; then
-              BUILD_DIR=$(dirname "$INDEX_FILE")
-              echo "📁 Encontrado en: $BUILD_DIR"
+            # Busca cualquier carpeta que contenga index.html
+            INDEX_PATH=$(find dist -name "index.html" -type f | head -1)
+            if [ -n "$INDEX_PATH" ]; then
+              BUILD_DIR=$(dirname "$INDEX_PATH")
+              echo "🚀 Desplegando desde: $BUILD_DIR"
               aws s3 sync "$BUILD_DIR"/ s3://${{ secrets.AWS_BUCKET_NAME }} --delete
             else
-              echo "❌ ERROR CRÍTICO: No se encontró index.html en dist/"
+              echo "❌ ERROR: No se encontró index.html"
+              echo "Estructura actual:"
+              find dist -type f | head -20
               exit 1
             fi
           fi
+          echo "✅ ¡Despliegue completado exitosamente!"
