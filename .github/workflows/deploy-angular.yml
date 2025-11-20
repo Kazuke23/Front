@@ -22,15 +22,19 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Build Angular (CLIENT ONLY - No SSR)
-        run: npm run build -- --configuration=production --no-ssr
-
-      - name: Debug build output
+      - name: Build Angular (Client-side only)
         run: |
-          echo "=== Estructura de dist ==="
+          # Intenta diferentes comandos de build
+          npx ng build --configuration production || \
+          npm run build:client || \
+          npm run build --prod
+
+      - name: Find and display build files
+        run: |
+          echo "=== Buscando archivos de build ==="
+          find dist -name "index.html" -type f | head -10
+          echo "=== Estructura completa ==="
           ls -la dist/
-          echo "=== Buscando index.html ==="
-          find dist -name "index.html" -type f
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -41,15 +45,13 @@ jobs:
 
       - name: Deploy to S3
         run: |
-          # Busca la carpeta del build del cliente
-          if [ -d "dist/frontend/browser" ]; then
-            echo "📁 Usando: dist/frontend/browser"
-            aws s3 sync dist/frontend/browser/ s3://${{ secrets.AWS_BUCKET_NAME }} --delete
-          elif [ -d "dist/browser" ]; then
-            echo "📁 Usando: dist/browser"
-            aws s3 sync dist/browser/ s3://${{ secrets.AWS_BUCKET_NAME }} --delete
+          # Encuentra automáticamente la carpeta correcta
+          BUILD_PATH=$(find dist -name "index.html" -type f | head -1 | xargs dirname)
+          if [ -n "$BUILD_PATH" ]; then
+            echo "🚀 Desplegando desde: $BUILD_PATH"
+            aws s3 sync "$BUILD_PATH"/ s3://${{ secrets.AWS_BUCKET_NAME }} --delete
+            echo "✅ Despliegue completado"
           else
-            echo "❌ No se encontró la carpeta del build"
-            find dist -type f -name "index.html" | head -5
+            echo "❌ No se encontró index.html en dist/"
             exit 1
           fi
