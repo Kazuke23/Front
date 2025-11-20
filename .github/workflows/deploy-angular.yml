@@ -3,7 +3,7 @@ name: Deploy Angular to S3
 on:
   push:
     branches:
-      - main   #v9
+      - main  #v10
 
 jobs:
   deploy:
@@ -26,16 +26,19 @@ jobs:
         continue-on-error: true
         run: npx ng build --configuration production
 
-      - name: Create fallback content if build failed
+      - name: Find and display actual build files
         run: |
-          if [ -d "dist" ] && find dist -name "*.js" -type f | head -1 | grep -q .; then
-            echo "✅ Build generó archivos reales"
-            find dist -name "*.html" -type f | head -5
-          else
-            echo "⚠️  Build falló, creando contenido de respaldo"
-            mkdir -p dist/browser
-            echo '<!DOCTYPE html><html><head><title>App Angular</title><style>body{font-family:Arial,sans-serif;margin:40px;text-align:center}</style></head><body><h1>🚀 Aplicación Angular</h1><p>El despliegue automático está configurado</p><p>El build completo estará disponible pronto</p></body></html>' > dist/browser/index.html
-            echo "📁 Contenido de respaldo creado en dist/browser/"
+          echo "=== BUSCANDO ARCHIVOS REALES DEL BUILD ==="
+          # Busca dónde están realmente los archivos del browser
+          find . -name "main-*.js" -type f | head -5
+          find . -name "index.html" -type f | grep -v node_modules | head -5
+          find . -name "*.css" -type f | grep -v node_modules | head -5
+          
+          echo "=== ESTRUCTURA COMPLETA ==="
+          ls -la
+          if [ -d "dist" ]; then
+            echo "=== CONTENIDO DE DIST ==="
+            find dist -type f | head -20
           fi
 
       - name: Configure AWS Credentials
@@ -45,22 +48,25 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Deploy to S3
+      - name: Deploy ACTUAL build files to S3
         run: |
-          echo "🚀 INICIANDO DESPLIEGUE A S3..."
+          echo "🚀 BUSCANDO ARCHIVOS REALES DEL BUILD PARA DESPLEGAR..."
           
-          if [ -d "dist/browser" ]; then
-            echo "📁 Desplegando desde: dist/browser"
-            aws s3 sync dist/browser/ s3://${{ secrets.S3_BUCKET_NAME }} --delete
-          elif find dist -name "index.html" -type f | head -1 | grep -q .; then
-            HTML_FILE=$(find dist -name "index.html" -type f | head -1)
-            DEPLOY_DIR=$(dirname "$HTML_FILE")
-            echo "📁 Desplegando desde: $DEPLOY_DIR"
-            aws s3 sync "$DEPLOY_DIR"/ s3://${{ secrets.S3_BUCKET_NAME }} --delete
+          # Busca los archivos reales del browser que SÍ se generaron
+          if find dist -name "main-*.js" -type f | head -1 | grep -q .; then
+            # Encuentra la carpeta donde están los archivos del browser
+            BROWSER_FILE=$(find dist -name "main-*.js" -type f | head -1)
+            BROWSER_DIR=$(dirname "$BROWSER_FILE")
+            echo "📁 ARCHIVOS REALES ENCONTRADOS EN: $BROWSER_DIR"
+            echo "📊 Contenido:"
+            ls -la "$BROWSER_DIR" | head -10
+            echo "🚀 DESPLEGANDO ARCHIVOS REALES..."
+            aws s3 sync "$BROWSER_DIR"/ s3://${{ secrets.S3_BUCKET_NAME }} --delete
           else
-            echo "📁 Desplegando dist completo"
-            aws s3 sync dist/ s3://${{ secrets.S3_BUCKET_NAME }} --delete
+            echo "❌ No se encontraron archivos del build reales"
+            echo "Estructura actual:"
+            find dist -type f | head -20
+            exit 1
           fi
           
-          echo "🎉 ¡DESPLIEGUE EXITOSO A S3!"
-          echo "🌐 URL: http://${{ secrets.S3_BUCKET_NAME }}.s3-website.${{ secrets.AWS_REGION }}.amazonaws.com"
+          echo "🎉 ¡ARCHIVOS REALES DESPLEGADOS EXITOSAMENTE!"
