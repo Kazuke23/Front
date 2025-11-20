@@ -3,7 +3,7 @@ name: Deploy Angular to S3
 on:
   push:
     branches:
-      - develop
+      - main
 
 jobs:
   deploy:
@@ -53,7 +53,7 @@ jobs:
           echo "🚀 INICIANDO DESPLIEGUE A S3..."
           
           # Busca la carpeta del browser específicamente
-            if [ -d "dist/frontend/browser" ]; then
+          if [ -d "dist/frontend/browser" ]; then
             echo "✅ Encontrado: dist/frontend/browser"
             echo "Desplegando archivos del cliente..."
             aws s3 sync dist/frontend/browser/ s3://${{ secrets.AWS_BUCKET_NAME }} --delete
