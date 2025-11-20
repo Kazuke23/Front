@@ -35,12 +35,35 @@ export const routes: Routes = [
     data: { roles: ['Administrador', 'Chef'] } // Administradores y Chefs
   },
 
-  { 
-    path: 'ingredientes',
-    loadComponent: () => import('./pages/ingredients/ingredients').then(m => m.IngredientsComponent),
-    canActivate: [AuthGuard, RoleGuard],
-    data: { roles: ['Administrador', 'Chef'] } // Administradores y Chefs
-  },
+   // Ingredientes (Admin + Chef)
+{
+  path: 'ingredientes',
+  children: [
+    // Listado de ingredientes
+    { 
+      path: '', 
+      loadComponent: () => import('./pages/ingredients/ingredients').then(m => m.IngredientsPage),
+      canActivate: [AuthGuard, RoleGuard],
+      data: { roles: ['Administrador', 'Chef'] }
+    },
+
+    // Crear ingrediente
+    { 
+      path: 'nuevo',
+      loadComponent: () => import('./pages/ingredients/ingredients-form').then(m => m.IngredientFormPage),
+      canActivate: [AuthGuard, RoleGuard],
+      data: { roles: ['Administrador', 'Chef'] }
+    },
+
+    // Editar ingrediente
+    { 
+      path: 'editar/:id',
+      loadComponent: () => import('./pages/ingredients/ingredients-form').then(m => m.IngredientFormPage),
+      canActivate: [AuthGuard, RoleGuard],
+      data: { roles: ['Administrador', 'Chef'] }
+    }
+  ]
+},
   {
     path: 'inventario/admin',
     loadComponent: () => import('./pages/inventory/admin-inventory/admin-inventory').then(m => m.AdminInventoryComponent),

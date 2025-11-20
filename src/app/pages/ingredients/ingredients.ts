@@ -1,168 +1,103 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import {
-  Ingredient,
-  IngredientFormData,
-  INGREDIENT_CATEGORIES,
-  SAMPLE_INGREDIENTS
-} from '../../models/ingredient.model';
+import { IngredientsService } from '../../services/ingredients.service';
+import { Ingredient } from '../../models/ingredient.model';
 
 @Component({
   selector: 'app-ingredients',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, RouterModule, FormsModule],
   templateUrl: './ingredients.html',
   styleUrls: ['./ingredients.css']
 })
-export class IngredientsComponent {
-  ingredients: Ingredient[] = [...SAMPLE_INGREDIENTS];
-  filteredIngredients: Ingredient[] = [...this.ingredients];
+export class IngredientsPage implements OnInit {
 
-  categories = INGREDIENT_CATEGORIES;
-  selectedCategory = 'Todos';
-  searchTerm = '';
+  ingredients: Ingredient[] = [];
+  loading = true;
+  searchTerm: string = '';
 
-  showForm = false;
-  editingIngredient: Ingredient | null = null;
+  constructor(
+    private ingredientsService: IngredientsService,
+    private router: Router,
+    private cd: ChangeDetectorRef   // <-- INYECTAR ChangeDetectorRef
+  ) {}
 
-  formData: IngredientFormData = {
-    name: '',
-    unit: '',
-    cost: 0,
-    stock: 0,
-    category: 'Otros',
-    description: ''
-  };
-
-  constructor() {
-    this.filterIngredients();
+  ngOnInit() {
+    this.loadIngredients();
   }
 
-  // --- Filtrado (asegura que "Todos" muestre todo)
-  filterIngredients(): void {
-    const search = (this.searchTerm || '').trim().toLowerCase();
-    const category = this.selectedCategory || 'Todos';
-
-    this.filteredIngredients = this.ingredients.filter(i => {
-      const matchCategory = category === 'Todos' || i.category === category;
-      const matchSearch =
-        !search ||
-        i.name.toLowerCase().includes(search) ||
-        (i.description || '').toLowerCase().includes(search);
-      return matchCategory && matchSearch;
+  loadIngredients() {
+    this.loading = true;
+    this.ingredientsService.getIngredients().subscribe({
+      next: (res: Ingredient[]) => {
+        this.ingredients = [...res]; // nueva referencia
+        this.loading = false;
+      },
+      error: (err) => {
+        console.error('Error cargando ingredientes', err);
+        this.loading = false;
+      }
     });
   }
 
-  // --- Abrir formulario para nuevo ingrediente
-  toggleForm(): void {
-    this.showForm = !this.showForm;
-    if (!this.showForm) {
-      this.cancelEdit();
-    } else {
-      // Abrir para crear por defecto
-      this.editingIngredient = null;
-      this.resetForm();
-    }
+  get filteredIngredients(): Ingredient[] {
+    const term = (this.searchTerm || '').toLowerCase();
+    return this.ingredients.filter(i =>
+      i.name.toLowerCase().includes(term)
+    );
   }
 
-  // --- Preparar formulario para editar
-  editIngredient(ingredient: Ingredient): void {
-    this.editingIngredient = ingredient;
-    // Asignamos solo los campos del formulario (sin id, fechas, etc.)
-    this.formData = {
-      name: ingredient.name,
-      unit: ingredient.unit,
-      cost: ingredient.cost,
-      stock: ingredient.stock,
-      category: ingredient.category,
-      description: ingredient.description
-    };
-    this.showForm = true;
+  goToCreate() {
+    this.router.navigate(['/ingredientes', 'nuevo']);
   }
 
-  // --- Guardar (crear o actualizar)
-  saveIngredient(): void {
-    // Validación mínima
-    if (!this.formData.name || !this.formData.unit) {
-      alert('Por favor completa al menos nombre y unidad.');
+  goToEdit(id?: string) {
+    if (!id) return;
+    this.router.navigate(['/ingredientes', 'editar', id]);
+  }
+
+  // ---------- Método delete mejorado con diagnostico y forzado de refresh ----------
+  deleteIngredient(id?: string) {
+    console.log('[deleteIngredient] id recibido:', id);
+
+    if (!id) {
+      console.warn('[deleteIngredient] id undefined, abortando');
       return;
     }
 
-    if (this.editingIngredient) {
-      // Actualizar elemento en el arreglo por índice
-      const idx = this.ingredients.findIndex(i => i.id === this.editingIngredient!.id);
-      if (idx !== -1) {
-        const updated: Ingredient = {
-          ...this.ingredients[idx],
-          name: this.formData.name,
-          unit: this.formData.unit,
-          cost: this.formData.cost,
-          stock: this.formData.stock,
-          category: this.formData.category,
-          description: this.formData.description,
-          updatedAt: new Date()
-        };
-        this.ingredients[idx] = updated;
-      } else {
-        // Por seguridad, fallback: agregar como nuevo si no se encuentra
-        const newIng: Ingredient = {
-          id: Date.now().toString(),
-          name: this.formData.name,
-          unit: this.formData.unit,
-          cost: this.formData.cost,
-          stock: this.formData.stock,
-          category: this.formData.category,
-          description: this.formData.description,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        };
-        this.ingredients.unshift(newIng);
-      }
-    } else {
-      // Crear nuevo
-      const newIngredient: Ingredient = {
-        id: Date.now().toString(),
-        name: this.formData.name,
-        unit: this.formData.unit,
-        cost: this.formData.cost,
-        stock: this.formData.stock,
-        category: this.formData.category,
-        description: this.formData.description,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-      this.ingredients.unshift(newIngredient);
+    const confirmed = confirm('¿Seguro que deseas eliminar este ingrediente?');
+    if (!confirmed) {
+      console.log('[deleteIngredient] usuario canceló');
+      return;
     }
 
-    // Actualizar lista filtrada y cerrar formulario
-    this.filterIngredients();
-    this.resetForm();
-    this.showForm = false;
-    this.editingIngredient = null;
-  }
+    // 1) Optimistic update: quitar inmediatamente del array local
+    const beforeCount = this.ingredients.length;
+    this.ingredients = this.ingredients.filter(ing => ing.id !== id);
+    console.log(`[deleteIngredient] eliminado localmente (antes=${beforeCount} ahora=${this.ingredients.length})`);
 
-  // --- Eliminar
-  deleteIngredient(id: string): void {
-    if (!confirm('¿Estás seguro de eliminar este ingrediente?')) return;
-    this.ingredients = this.ingredients.filter(i => i.id !== id);
-    this.filterIngredients();
-  }
+    // Forzar cambio de referencia (por si acaso)
+    this.ingredients = [...this.ingredients];
+    // Forzar detección de cambios inmediatamente
+    this.cd.detectChanges();
 
-  // --- Cancelar edición y limpiar
-  cancelEdit(): void {
-    this.editingIngredient = null;
-    this.resetForm();
-  }
-
-  resetForm(): void {
-    this.formData = {
-      name: '',
-      unit: '',
-      cost: 0,
-      stock: 0,
-      category: this.categories.includes('Otros') ? 'Otros' : this.categories[0],
-      description: ''
-    };
+    // 2) Llamada al servicio para eliminar en "backend"
+    this.ingredientsService.deleteIngredient(id).subscribe({
+      next: (res) => {
+        console.log('[deleteIngredient] respuesta del servicio:', res);
+        // Asegurarse de recargar la lista real desde el servicio (opcional)
+        this.loadIngredients(); // actualiza desde la fuente autoritativa
+        // y forzar otra vez la detección en caso de que el servicio emita la misma referencia
+        setTimeout(() => this.cd.detectChanges(), 0);
+      },
+      error: (err) => {
+        console.error('[deleteIngredient] error al eliminar en servicio:', err);
+        // Si falla el DELETE, revertir la eliminación local (mejor experiencia)
+        // (recomendado solo si tu servicio retorna error; evita duplicar lógica)
+        this.loadIngredients(); // vuelve a pedir lista y restaura el estado
+      }
+    });
   }
 }

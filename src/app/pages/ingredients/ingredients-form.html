@@ -1,0 +1,26 @@
+<div class="form-container">
+
+  <h2 class="title">
+    {{ id ? 'Editar Ingrediente' : 'Nuevo Ingrediente' }}
+  </h2>
+
+  <form (ngSubmit)="save()">
+
+    <label>Nombre</label>
+    <input type="text" [(ngModel)]="formData.name" name="name" required />
+
+    <label>Unidad por defecto</label>
+    <select [(ngModel)]="formData.default_unit_id" name="unit" required>
+      <option value="">Seleccione...</option>
+      <option *ngFor="let u of units" [value]="u.id">{{ u.name }}</option>
+    </select>
+
+    <label>Calorías por unidad</label>
+    <input type="number" [(ngModel)]="formData.calories_per_unit" name="calories" required />
+
+    <button class="btn-save" type="submit">Guardar</button>
+    <button type="button" class="btn-save" style="background:#999" (click)="cancel()">Cancelar</button>
+
+  </form>
+
+</div>
