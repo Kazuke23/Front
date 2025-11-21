@@ -3,7 +3,7 @@ name: Deploy Angular to S3
 on:
   push:
     branches:
-      - main    #v21
+      - main   #v22
 
 jobs:
   deploy:
@@ -24,8 +24,14 @@ jobs:
 
       - name: Build Angular for S3
         run: |
-          # Build con base href para S3
           npx ng build --configuration production --base-href ./
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Deploy to S3
         run: |
@@ -35,12 +41,9 @@ jobs:
       - name: Configure S3 for SPA
         run: |
           echo "🌐 Configurando S3 para Single Page Application..."
-          # Habilita hosting estático con error document como index.html
           aws s3 website s3://${{ secrets.S3_BUCKET_NAME }} \
             --index-document index.html \
             --error-document index.html
-          
-          echo "✅ Configuración SPA completada"
 
       - name: Verify deployment
         run: |
