@@ -54,18 +54,26 @@ export class PurchaseService {
 
   // POST /purchase-orders
   create(order: Omit<PurchaseOrder, 'id'>): Observable<PurchaseOrder> {
-    // Crear orden sin items primero (según la API)
-    const createRequest = {
+    // Crear orden con todos los campos
+    const createRequest: any = {
       restaurant_id: order.restaurant_id,
       supplier_id: order.supplier_id,
       status: order.status || 'pending'
     };
+    
+    // Agregar campos opcionales si existen
+    if (order.name) createRequest.name = order.name;
+    if (order.order_date) createRequest.order_date = order.order_date;
+    if (order.total_amount) createRequest.total_amount = order.total_amount;
 
     // Crear inmediatamente en el estado local con ID temporal
     const tempId = this.generateId();
     const tempOrder: PurchaseOrder = {
       ...order,
-      id: tempId
+      id: tempId,
+      name: order.name || `Compra ${new Date().toLocaleDateString()}`,
+      order_date: order.order_date || new Date().toISOString().split('T')[0],
+      total_amount: order.total_amount || this.calculateTotal(order.items || [])
     };
     const updated = [tempOrder, ...this.purchaseSubject.value];
     this.purchaseSubject.next(updated);
@@ -137,7 +145,14 @@ export class PurchaseService {
     const orders = this.purchaseSubject.value;
     const index = orders.findIndex(order => order.id === id);
     if (index !== -1) {
-      const updatedOrder: PurchaseOrder = { ...orders[index], ...changes };
+      const updatedOrder: PurchaseOrder = { 
+        ...orders[index], 
+        ...changes,
+        // Asegurar que total_amount se actualice si cambian los items
+        total_amount: changes.total_amount !== undefined 
+          ? changes.total_amount 
+          : (changes.items ? this.calculateTotal(changes.items) : orders[index].total_amount)
+      };
       const updated = [...orders];
       updated[index] = updatedOrder;
       this.purchaseSubject.next(updated);
@@ -317,21 +332,24 @@ export class PurchaseService {
       if (unit) unitCodes[item.unit_id] = unit.code;
     });
 
+    // Calcular total: usar total_amount si existe, sino calcular desde items
+    const calculatedTotal = order.total_amount || this.calculateTotal(order.items);
+    
     return {
       ...order,
       restaurantName: restaurant?.name,
       supplierName: supplier?.name,
-      totalAmount: this.calculateTotal(order.items),
+      totalAmount: calculatedTotal,
+      orderDate: order.order_date,
       ingredientNames,
       unitCodes
     };
   }
 
   private generateId(): string {
-    if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
-      return crypto.randomUUID();
-    }
-    return 'po-' + Math.random().toString(36).substring(2, 11);
+    const year = new Date().getFullYear();
+    const randomNum = Math.floor(Math.random() * 999) + 1;
+    return `PO-${year}-${randomNum.toString().padStart(3, '0')}`;
   }
 
   private persist(): void {

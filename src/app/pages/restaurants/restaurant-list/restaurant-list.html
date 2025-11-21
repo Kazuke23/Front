@@ -1,33 +1,40 @@
-<div class="restaurant-list-page">
+<div class="restaurant-page">
+  <!-- Header -->
   <div class="page-header">
-    <h1>Gestión de Restaurantes</h1>
-  </div>
-
-  <div class="search-bar">
-    <div class="search-group">
-      <span class="search-icon">🔍</span>
-      <input
-        type="text"
-        placeholder="Buscar restaurantes..."
-        [(ngModel)]="searchTerm"
-        (ngModelChange)="onFiltersChange()"
-      />
+    <div class="header-content">
+      <h1 class="page-title">Gestión de Restaurantes</h1>
     </div>
-    <button class="create-btn" (click)="goToCreate()">+ Crear Restaurante</button>
   </div>
 
-  <div class="banner-image">
-    <img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80" alt="Restaurantes" />
+  <!-- Actions Bar -->
+  <div class="actions-bar">
+    <div class="search-group">
+      <div class="search-input-wrapper">
+        <span class="search-icon">🔍</span>
+        <input
+          type="text"
+          placeholder="Buscar restaurantes..."
+          [(ngModel)]="searchTerm"
+          (ngModelChange)="onFiltersChange()"
+          class="search-input"
+        />
+      </div>
+    </div>
+    <a routerLink="/restaurantes/create" class="btn-create">
+      <span class="plus-icon">+</span>
+      Crear Restaurante
+    </a>
   </div>
 
-  <div class="list-section">
+  <!-- Table Section -->
+  <div class="table-section">
     <div class="list-header">
       <h2>Lista de Restaurantes</h2>
       <p>Gestiona los restaurantes registrados en tu plataforma.</p>
     </div>
 
-    <div class="table-wrapper" *ngIf="filteredRestaurants.length; else emptyState">
-      <table>
+    <div class="table-container" *ngIf="filteredRestaurants.length > 0; else emptyState">
+      <table class="restaurant-table">
         <thead>
           <tr>
             <th>Nombre</th>
@@ -36,35 +43,27 @@
             <th>Estado</th>
             <th>Calificación</th>
             <th>Contacto</th>
-            <th></th>
+            <th>Acciones</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let restaurant of filteredRestaurants; trackBy: trackById">
-            <td>
+            <td class="restaurant-name">
               <strong>{{ restaurant.name }}</strong>
             </td>
-            <td>
-              <span class="cuisine-text">{{ restaurant.cuisine || 'N/A' }}</span>
-            </td>
-            <td>
-              <span>{{ restaurant.address || restaurant.city || 'N/A' }}</span>
-            </td>
-            <td>
+            <td class="restaurant-cuisine">{{ restaurant.cuisine || 'N/A' }}</td>
+            <td class="restaurant-location">{{ getLocation(restaurant) }}</td>
+            <td class="restaurant-status">
               <span class="status-chip" [ngClass]="getStatusClass(restaurant)">
                 {{ getStatusLabel(restaurant) }}
               </span>
             </td>
-            <td>
-              <span class="rating-text">{{ restaurant.rating || 0 }}</span>
-            </td>
-            <td>
-              <span>{{ restaurant.phone || 'N/A' }}</span>
-            </td>
-            <td class="actions">
-              <button class="action-btn" (click)="viewRestaurant(restaurant, $event)" title="Ver">👁️</button>
-              <button class="action-btn" (click)="editRestaurant(restaurant, $event)" title="Editar">✏️</button>
-              <button class="action-btn" (click)="deleteRestaurant(restaurant, $event)" title="Eliminar">🗑️</button>
+            <td class="restaurant-rating">{{ restaurant.rating || 0 }}</td>
+            <td class="restaurant-contact">{{ restaurant.phone || 'N/A' }}</td>
+            <td class="restaurant-actions">
+              <button type="button" class="btn-action btn-view" (click)="viewRestaurant(restaurant, $event)" title="Ver">👁️</button>
+              <button type="button" class="btn-action btn-edit" (click)="editRestaurant(restaurant, $event)" title="Editar">✏️</button>
+              <button type="button" class="btn-action btn-delete" (click)="deleteRestaurant(restaurant, $event)" title="Eliminar">🗑️</button>
             </td>
           </tr>
         </tbody>
@@ -72,9 +71,13 @@
     </div>
     <ng-template #emptyState>
       <div class="empty-state">
-        <h3>Sin resultados</h3>
-        <p>Prueba con otro término o crea un nuevo restaurante.</p>
-        <button class="create-btn" (click)="goToCreate()">Crear nuevo restaurante</button>
+        <div class="empty-icon">🏪</div>
+        <h3>No hay restaurantes</h3>
+        <p>Crea tu primer restaurante haciendo clic en "Crear Restaurante"</p>
+        <a routerLink="/restaurantes/create" class="btn-create">
+          <span class="plus-icon">+</span>
+          Crear Restaurante
+        </a>
       </div>
     </ng-template>
   </div>

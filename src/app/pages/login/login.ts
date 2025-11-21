@@ -100,17 +100,17 @@ export class Login implements OnInit, OnDestroy {
     this.showPassword = !this.showPassword;
   }
 
-  // Llenar credenciales demo
+  // Llenar credenciales
   fillDemoCredentials(type: 'admin' | 'chef'): void {
     if (type === 'admin') {
       this.formLogin.patchValue({
-        email: 'admin@recetario.com',
-        password: '123456'
+        email: 'ander2@example.com',
+        password: 'password1234'
       });
     } else {
       this.formLogin.patchValue({
-        email: 'chef@recetario.com',
-        password: 'chef123'
+        email: 'ander@example.com',
+        password: 'password1234'
       });
     }
     

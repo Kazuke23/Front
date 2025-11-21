@@ -1,7 +1,7 @@
 import { Component, OnDestroy, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { PurchaseService } from '../../../services/purchase.service';
 import { NotificationService } from '../../../services/notification.service';
@@ -11,7 +11,7 @@ import { PurchaseOrderDisplay, PurchaseStatus } from '../../../models/purchase.m
 @Component({
   selector: 'app-purchase-list',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './purchase-list.html',
   styleUrls: ['./purchase-list.css']
 })
@@ -224,6 +224,20 @@ export class PurchaseListComponent implements OnInit, OnDestroy {
 
   trackById(_: number, order: PurchaseOrderDisplay): string {
     return order.id;
+  }
+
+  formatDate(date: Date | string | null | undefined): string {
+    if (!date) return '-';
+    try {
+      const dateObj = date instanceof Date ? date : new Date(date);
+      if (isNaN(dateObj.getTime())) return '-';
+      const day = dateObj.getDate().toString().padStart(2, '0');
+      const month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+      const year = dateObj.getFullYear();
+      return `${year}-${month}-${day}`;
+    } catch (error) {
+      return '-';
+    }
   }
 
   // Método para reinicializar datos si hay problemas

@@ -15,6 +15,9 @@ export interface PurchaseOrder {
   supplier_id: string;
   status: PurchaseStatus;
   items: PurchaseItem[];
+  name?: string;
+  order_date?: Date | string;
+  total_amount?: number;
 }
 
 // Para mostrar en la UI (datos calculados/derivados)
@@ -24,6 +27,7 @@ export interface PurchaseOrderDisplay extends PurchaseOrder {
   totalAmount?: number;
   ingredientNames?: { [key: string]: string };
   unitCodes?: { [key: string]: string };
+  orderDate?: Date | string;
 }
 
 export const PURCHASE_SAMPLE: PurchaseOrder[] = [

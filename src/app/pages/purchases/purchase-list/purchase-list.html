@@ -1,216 +1,97 @@
-<div class="purchase-list-page">
-  <section class="hero-card">
-    <div class="hero-content">
-      <p class="eyebrow">Panel exclusivo para Administradores</p>
-      <h1>Gestión de Compras</h1>
-      <p class="subtitle">
+<div class="purchase-page">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <h1 class="page-title">Gestión de Compras</h1>
+      <p class="page-description">
         Supervise y administre todos los pedidos de compra, los proveedores y el estado de entrega en un solo lugar.
       </p>
-      <div class="hero-actions">
-        <button class="primary" (click)="goToCreate()">
-          <span>+ Crear Compra</span>
-          <small>Nuevo pedido inmediato</small>
-        </button>
-        <button class="ghost" (click)="refreshData()">
-          <span>Actualizar datos</span>
-        </button>
+    </div>
+  </div>
+
+  <!-- Actions Bar -->
+  <div class="actions-bar">
+    <div class="search-group">
+      <div class="search-input-wrapper">
+        <span class="search-icon">🔍</span>
+        <input
+          type="text"
+          placeholder="Buscar pedidos..."
+          [(ngModel)]="searchTerm"
+          (ngModelChange)="onFiltersChange()"
+          class="search-input"
+        />
       </div>
     </div>
-    <div class="hero-image">
-      <img src="https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=1200&q=80" alt="Gestión de compras" />
-      <div class="image-overlay">
-        <div class="overlay-card">
-          <p>Pedidos pendientes</p>
-          <strong>{{ stats.pending }}</strong>
-          <span>Requieren atención</span>
-        </div>
-        <div class="overlay-card">
-          <p>Monto total</p>
-          <strong>${{ stats.totalAmount | number:'1.0-0' }}</strong>
-          <span>Este mes</span>
-        </div>
-      </div>
-    </div>
-  </section>
+    <a routerLink="/compras/create" class="btn-create">
+      <span class="plus-icon">+</span>
+      Crear Compra
+    </a>
+  </div>
 
-  <section class="purchase-layout">
-    <div class="purchase-panel">
-      <header class="panel-header">
-        <div class="search-group">
-          <input
-            type="text"
-            placeholder="Buscar pedidos..."
-            [(ngModel)]="searchTerm"
-            (ngModelChange)="onFiltersChange()"
-          />
-          <span class="search-icon">🔍</span>
-        </div>
-        <div class="filters">
-          <select [(ngModel)]="statusFilter" (change)="onFiltersChange()">
-            <option value="all">Todos los estados</option>
-            <option value="pending">Pendiente</option>
-            <option value="in_process">En Proceso</option>
-            <option value="completed">Completado</option>
-            <option value="cancelled">Cancelado</option>
-          </select>
-          <select [(ngModel)]="supplierFilter" (change)="onFiltersChange()">
-            <option value="all">Todos los proveedores</option>
-            <option *ngFor="let supplier of getSuppliers()" [value]="supplier.id">
-              {{ supplier.name }}
-            </option>
-          </select>
-          <select [(ngModel)]="restaurantFilter" (change)="onFiltersChange()">
-            <option value="all">Todos los restaurantes</option>
-            <option *ngFor="let restaurant of getRestaurants()" [value]="restaurant.id">
-              {{ restaurant.name }}
-            </option>
-          </select>
-          <button class="primary ghosty" (click)="goToCreate()">+ Crear Compra</button>
-        </div>
-      </header>
-
-      <div class="table-wrapper" *ngIf="filteredOrders.length; else emptyState">
-        <table>
-          <thead>
-            <tr>
-              <th>ID de Pedido</th>
-              <th>Restaurante</th>
-              <th>Proveedor</th>
-              <th>Monto Total</th>
-              <th>Estado</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              *ngFor="let order of getPaginatedOrders(); trackBy: trackById"
-              (click)="selectOrder(order)"
-              [class.selected]="selectedOrder?.id === order.id"
-            >
-              <td>
-                <div class="order-info">
-                  <strong>{{ order.id }}</strong>
-                  <p *ngIf="order.items.length">{{ order.items.length }} ítem(s)</p>
-                </div>
-              </td>
-              <td>
-                <div class="restaurant-info">
-                  <strong>{{ order.restaurantName || 'N/A' }}</strong>
-                </div>
-              </td>
-              <td>
-                <div class="supplier-info">
-                  <strong>{{ order.supplierName || 'N/A' }}</strong>
-                </div>
-              </td>
-              <td>
-                <strong class="amount">${{ (order.totalAmount || 0) | number:'1.2-2' }}</strong>
-              </td>
-              <td>
-                <span class="status-chip" [ngClass]="getStatusClass(order.status)">
-                  {{ getStatusLabel(order.status) }}
-                </span>
-              </td>
-              <td class="actions">
-                <button class="ghost" (click)="editOrder(order, $event)">Editar</button>
-                <button class="danger ghost" (click)="deleteOrder(order, $event)">Eliminar</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        <div class="pagination" *ngIf="getTotalPages() > 1">
-          <button class="ghost" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 1">
-            < Previous
-          </button>
-          <div class="page-numbers">
-            <button
-              *ngFor="let page of [].constructor(getTotalPages()); let i = index"
-              class="page-btn"
-              [class.active]="currentPage === i + 1"
-              (click)="goToPage(i + 1)"
-            >
-              {{ i + 1 }}
-            </button>
-          </div>
-          <button class="ghost" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === getTotalPages()">
-            Next >
+  <!-- Table Section -->
+  <div class="table-section">
+    <div class="table-container" *ngIf="filteredOrders.length > 0; else emptyState">
+      <table class="purchase-table">
+        <thead>
+          <tr>
+            <th>ID de Pedido</th>
+            <th>Nombre</th>
+            <th>Fecha de Pedido</th>
+            <th>Proveedor</th>
+            <th>Monto Total</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let order of getPaginatedOrders(); trackBy: trackById">
+            <td class="order-id">{{ order.id }}</td>
+            <td class="order-name">{{ order.name || 'N/A' }}</td>
+            <td class="order-date">{{ formatDate(order.orderDate || order.order_date) }}</td>
+            <td class="order-supplier">{{ order.supplierName || 'N/A' }}</td>
+            <td class="order-amount">${{ (order.totalAmount || order.total_amount || 0) | number:'1.2-2' }}</td>
+            <td class="order-status">
+              <span class="status-badge" [ngClass]="getStatusClass(order.status)">
+                {{ getStatusLabel(order.status) }}
+              </span>
+            </td>
+            <td class="order-actions">
+              <button type="button" class="btn-action btn-edit" (click)="editOrder(order, $event)" title="Editar">✏️</button>
+              <button type="button" class="btn-action btn-delete" (click)="deleteOrder(order, $event)" title="Eliminar">🗑️</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="pagination" *ngIf="getTotalPages() > 1">
+        <button class="btn-pagination" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 1">
+          ← Anterior
+        </button>
+        <div class="page-numbers">
+          <button
+            *ngFor="let page of [].constructor(getTotalPages()); let i = index"
+            class="page-btn"
+            [class.active]="currentPage === i + 1"
+            (click)="goToPage(i + 1)"
+          >
+            {{ i + 1 }}
           </button>
         </div>
+        <button class="btn-pagination" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === getTotalPages()">
+          Siguiente →
+        </button>
       </div>
-      <ng-template #emptyState>
-        <div class="empty-state">
-          <h3>Sin resultados</h3>
-          <p>Prueba con otro término o crea un nuevo pedido.</p>
-          <button class="primary" (click)="goToCreate()">Crear nuevo pedido</button>
-        </div>
-      </ng-template>
     </div>
-
-    <aside class="insights-panel">
-      <div class="detail-card" *ngIf="selectedOrder as order; else placeholderCard">
-        <div class="detail-cover">
-          <img src="https://images.unsplash.com/photo-1587560440462-772956505563?auto=format&fit=crop&w=900&q=80" alt="Orden de Compra" />
-          <span class="status-pill" [ngClass]="getStatusClass(order.status)">{{ getStatusLabel(order.status) }}</span>
-        </div>
-        <div class="detail-body">
-          <p class="eyebrow">Detalle de la Orden</p>
-          <h2>{{ order.id }}</h2>
-          <p class="description">Pedido realizado a {{ order.supplierName || 'Sin proveedor' }} para {{ order.restaurantName || 'Sin restaurante' }}.</p>
-          <div class="detail-grid">
-            <div>
-              <label>Restaurante</label>
-              <strong>{{ order.restaurantName || 'Sin restaurante' }}</strong>
-            </div>
-            <div>
-              <label>Proveedor</label>
-              <strong>{{ order.supplierName || 'Sin proveedor' }}</strong>
-            </div>
-            <div>
-              <label>Monto Total</label>
-              <strong>${{ (order.totalAmount || 0) | currency:'USD':'symbol':'1.2-2' }}</strong>
-            </div>
-            <div>
-              <label>Estado</label>
-              <strong>{{ getStatusLabel(order.status) }}</strong>
-            </div>
-          </div>
-          <div class="detail-items">
-            <label>Ítems del Pedido</label>
-            <ul>
-              <li *ngFor="let item of order.items">
-                <span>
-                  {{ item.quantity }} {{ order.unitCodes?.[item.unit_id] || 'unidades' }} de 
-                  {{ order.ingredientNames?.[item.ingredient_id] || 'Ingrediente' }}
-                </span>
-                <strong>${{ (item.price * item.quantity) | number:'1.2-2' }}</strong>
-              </li>
-            </ul>
-          </div>
-          <div class="detail-actions">
-            <button class="ghost" (click)="goToEdit(order.id)">Actualizar Orden</button>
-            <button class="primary" (click)="goToCreate()">Crear Nuevo Pedido</button>
-          </div>
-        </div>
+    <ng-template #emptyState>
+      <div class="empty-state">
+        <div class="empty-icon">📦</div>
+        <h3>No hay pedidos de compra</h3>
+        <p>Crea tu primer pedido haciendo clic en "Crear Compra"</p>
+        <a routerLink="/compras/create" class="btn-create">
+          <span class="plus-icon">+</span>
+          Crear Compra
+        </a>
       </div>
-      <ng-template #placeholderCard>
-        <div class="detail-card placeholder">
-          <h3>Selecciona una orden</h3>
-          <p>Verás todos los detalles y el estado de la compra.</p>
-        </div>
-      </ng-template>
-
-      <div class="timeline-card">
-        <p class="eyebrow">Movimiento reciente</p>
-        <h3>Últimas actualizaciones</h3>
-        <ul>
-          <li *ngFor="let order of recentOrders">
-            <div>
-              <strong>{{ order.id }}</strong>
-              <p>{{ order.restaurantName || 'Sin restaurante' }} · {{ order.supplierName || 'Sin proveedor' }}</p>
-            </div>
-          </li>
-        </ul>
-      </div>
-    </aside>
-  </section>
+    </ng-template>
+  </div>
 </div>

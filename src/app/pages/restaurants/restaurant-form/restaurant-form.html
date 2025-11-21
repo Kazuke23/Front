@@ -1,0 +1,148 @@
+<div class="container-page">
+  <!-- Header -->
+  <div class="form-header">
+    <button class="back-button" (click)="cancel()">
+      <span class="back-icon">←</span>
+      Volver
+    </button>
+    <h1 class="form-title">🏪 {{ isEditMode ? 'Editar Restaurante' : 'Crear Nuevo Restaurante' }}</h1>
+    <p class="form-subtitle">{{ isEditMode ? 'Modifica la información del restaurante' : 'Complete los detalles a continuación para añadir un nuevo restaurante a su plataforma.' }}</p>
+  </div>
+
+  <!-- Formulario -->
+  <div class="form-container">
+    <form [formGroup]="form" (ngSubmit)="submit()" class="form">
+      <div class="form-row">
+        <!-- Columna Izquierda -->
+        <div class="form-column">
+          <div class="form-group">
+            <label class="form-label">
+              <span class="label-icon">📝</span>
+              Nombre del Restaurante
+            </label>
+            <input
+              type="text"
+              formControlName="name"
+              placeholder="Ej. Sabor Latino"
+              class="form-input"
+            />
+            <div class="form-error" *ngIf="form.get('name')?.invalid && form.get('name')?.touched">
+              El nombre es requerido
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">
+              <span class="label-icon">📞</span>
+              Teléfono de Contacto
+            </label>
+            <input
+              type="text"
+              formControlName="phone"
+              placeholder="Ej. +34 123 456 789"
+              class="form-input"
+            />
+            <div class="form-error" *ngIf="form.get('phone')?.invalid && form.get('phone')?.touched">
+              El teléfono es requerido
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">
+              <span class="label-icon">🔄</span>
+              Estado Operacional
+            </label>
+            <select formControlName="isActive" class="form-select">
+              <option value="">Seleccione el estado</option>
+              <option value="true">Activo</option>
+              <option value="false">Cerrado</option>
+            </select>
+            <div class="form-error" *ngIf="form.get('isActive')?.invalid && form.get('isActive')?.touched">
+              El estado es requerido
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">
+              <span class="label-icon">🕐</span>
+              Horario de Operación
+            </label>
+            <input
+              type="text"
+              formControlName="openingHours"
+              placeholder="Ej. Lunes-Viernes: 9 AM - 10 PM"
+              class="form-input"
+            />
+            <div class="form-error" *ngIf="form.get('openingHours')?.invalid && form.get('openingHours')?.touched">
+              El horario es requerido
+            </div>
+          </div>
+        </div>
+
+        <!-- Columna Derecha -->
+        <div class="form-column">
+          <div class="form-group">
+            <label class="form-label">
+              <span class="label-icon">📍</span>
+              Dirección
+            </label>
+            <input
+              type="text"
+              formControlName="address"
+              placeholder="Ej. Calle Principal 123"
+              class="form-input"
+            />
+            <div class="form-error" *ngIf="form.get('address')?.invalid && form.get('address')?.touched">
+              La dirección es requerida
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">
+              <span class="label-icon">🍽️</span>
+              Tipo de Cocina
+            </label>
+            <select formControlName="cuisine" class="form-select">
+              <option value="">Seleccione un tipo de cocina</option>
+              <option *ngFor="let cuisine of cuisineTypes" [value]="cuisine">
+                {{ cuisine }}
+              </option>
+            </select>
+            <div class="form-error" *ngIf="form.get('cuisine')?.invalid && form.get('cuisine')?.touched">
+              El tipo de cocina es requerido
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">
+              <span class="label-icon">⭐</span>
+              Calificación (Estrellas)
+            </label>
+            <select formControlName="rating" class="form-select">
+              <option value="">Seleccione la calificación</option>
+              <option [value]="1">1 Estrella</option>
+              <option [value]="2">2 Estrellas</option>
+              <option [value]="3">3 Estrellas</option>
+              <option [value]="4">4 Estrellas</option>
+              <option [value]="5">5 Estrellas</option>
+            </select>
+            <div class="form-error" *ngIf="form.get('rating')?.invalid && form.get('rating')?.touched">
+              La calificación es requerida
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn-cancel" (click)="cancel()">
+          Cancelar
+        </button>
+        <button type="submit" class="btn-save" [disabled]="form.invalid">
+          <span class="save-icon">✓</span>
+          {{ isEditMode ? 'Actualizar Restaurante' : 'Guardar Restaurante' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+

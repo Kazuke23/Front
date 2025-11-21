@@ -1,7 +1,7 @@
 import { Component, OnDestroy, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { InventoryService } from '../../../services/inventory.service';
 import { NotificationService } from '../../../services/notification.service';
@@ -11,7 +11,7 @@ import { InventoryItemDisplay, InventoryRestaurant } from '../../../models/inven
 @Component({
   selector: 'app-admin-inventory',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './admin-inventory.html',
   styleUrls: ['./admin-inventory.css']
 })
@@ -215,6 +215,20 @@ export class AdminInventoryComponent implements OnInit, OnDestroy {
 
   trackById(_: number, item: InventoryItemDisplay): string {
     return item.id;
+  }
+
+  formatDate(date: Date | string | null | undefined): string {
+    if (!date) return '-';
+    try {
+      const dateObj = date instanceof Date ? date : new Date(date);
+      if (isNaN(dateObj.getTime())) return '-';
+      const day = dateObj.getDate().toString().padStart(2, '0');
+      const month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+      const year = dateObj.getFullYear();
+      return `${year}-${month}-${day}`;
+    } catch (error) {
+      return '-';
+    }
   }
 
   // Método para reinicializar datos si hay problemas

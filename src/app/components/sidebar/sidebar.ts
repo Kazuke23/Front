@@ -491,13 +491,6 @@ export class SidebarComponent implements OnInit, OnDestroy {
       roles: ['Administrador', 'Chef']
     },
     {
-      id: 'planificacion',
-      label: 'Planificación',
-      icon: '📅',
-      route: '/planificacion',
-      roles: ['Administrador', 'Chef']
-    },
-    {
       id: 'menu',
       label: 'Menús',
       icon: '🍽️',

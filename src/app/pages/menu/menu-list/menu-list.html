@@ -30,8 +30,8 @@
       </a>
     </div>
 
-    <!-- Tabla de menús (solo para Administradores) -->
-    <div class="table-container" *ngIf="filteredMenuItems.length > 0 && isAdmin">
+    <!-- Tabla de menús (para Administradores y Chefs) -->
+    <div class="table-container" *ngIf="filteredMenuItems.length > 0">
       <table class="menus-table">
         <thead>
           <tr>
@@ -59,37 +59,6 @@
           </tr>
         </tbody>
       </table>
-    </div>
-
-    <!-- Grid de menús con cards (para Chefs) -->
-    <div class="menus-grid" *ngIf="filteredMenuItems.length > 0 && !isAdmin">
-      <div class="menu-card" *ngFor="let item of filteredMenuItems">
-        <div class="menu-card-content">
-          <h3 class="menu-card-title">{{ item.nombre }}</h3>
-          <p class="menu-restaurant" *ngIf="item.restauranteNombre">🏪 {{ item.restauranteNombre }}</p>
-          <div class="menu-card-dates">
-            <div class="date-item">
-              <span class="date-icon">📅</span>
-              <div class="date-info">
-                <span class="date-label">Inicio</span>
-                <span class="date-value">{{ formatDate(item.fechaInicio) }}</span>
-              </div>
-            </div>
-            <div class="date-item">
-              <span class="date-icon">📅</span>
-              <div class="date-info">
-                <span class="date-label">Fin</span>
-                <span class="date-value">{{ formatDate(item.fechaFin) }}</span>
-              </div>
-            </div>
-          </div>
-          <div class="menu-card-actions">
-            <button type="button" class="btn-view" (click)="viewMenu(item)">👁️ Ver</button>
-            <button type="button" class="btn-edit" (click)="editMenu(item)">✏️ Editar</button>
-            <button type="button" class="btn-delete" (click)="deleteMenu(item)">🗑️ Eliminar</button>
-          </div>
-        </div>
-      </div>
     </div>
 
     <!-- Mensaje cuando no hay menús -->

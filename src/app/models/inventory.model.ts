@@ -6,6 +6,10 @@ export interface InventoryItem {
   ingredient_id: string;
   unit_id: string;
   quantity: number;
+  category?: string;
+  supplier_id?: string;
+  reorder_level?: number;
+  updatedAt?: Date | string;
 }
 
 // Para mostrar en la UI (datos calculados/derivados)
@@ -13,6 +17,7 @@ export interface InventoryItemDisplay extends InventoryItem {
   restaurantName?: string;
   ingredientName?: string;
   unitCode?: string;
+  supplierName?: string;
   status?: 'available' | 'low' | 'out';
 }
 
@@ -58,10 +63,25 @@ export const INVENTORY_INGREDIENTS: InventoryIngredient[] = [
   { id: 'ing-005', name: 'Queso mozzarella', defaultUnitId: 'unit-kg' }
 ];
 
+export const INVENTORY_CATEGORIES = [
+  'Vegetales',
+  'Carnes',
+  'Básicos',
+  'Lácteos',
+  'Aceites',
+  'Especias',
+  'Frutas',
+  'Granos',
+  'Otros'
+];
+
 export const INVENTORY_SUPPLIERS: InventorySupplier[] = [
-  { id: 'supp-001', name: 'Proveedor 1', contact_info: '3005551234' },
-  { id: 'supp-002', name: 'Proveedor 2', contact_info: '3005555678' },
-  { id: 'supp-003', name: 'Proveedor 3', contact_info: '3005559012' }
+  { id: 'supp-001', name: 'Finca Verde', contact_info: '3005551234' },
+  { id: 'supp-002', name: 'Avícola La Granja', contact_info: '3005555678' },
+  { id: 'supp-003', name: 'Molino del Valle', contact_info: '3005559012' },
+  { id: 'supp-004', name: 'Lácteos Puros', contact_info: '3005559013' },
+  { id: 'supp-005', name: 'Olivares del Sol', contact_info: '3005559014' },
+  { id: 'supp-006', name: 'Salinas del Mar', contact_info: '3005559015' }
 ];
 
 export const INVENTORY_SAMPLE: InventoryItem[] = [

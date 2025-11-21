@@ -73,9 +73,21 @@ export class RecipeListComponent implements OnInit, OnDestroy {
           createdAt: new Date(r.createdAt),
           updatedAt: new Date(r.updatedAt)
         }));
+        // Ordenar por fecha de creación descendente (más recientes primero)
+        this.recipes.sort((a, b) => {
+          const dateA = a.createdAt instanceof Date ? a.createdAt.getTime() : new Date(a.createdAt).getTime();
+          const dateB = b.createdAt instanceof Date ? b.createdAt.getTime() : new Date(b.createdAt).getTime();
+          return dateB - dateA;
+        });
       } else {
         // Usar datos de ejemplo si no hay datos guardados
         this.recipes = [...SAMPLE_RECIPES];
+        // Ordenar por fecha de creación descendente
+        this.recipes.sort((a, b) => {
+          const dateA = a.createdAt instanceof Date ? a.createdAt.getTime() : new Date(a.createdAt).getTime();
+          const dateB = b.createdAt instanceof Date ? b.createdAt.getTime() : new Date(b.createdAt).getTime();
+          return dateB - dateA;
+        });
         localStorage.setItem('recipes', JSON.stringify(this.recipes));
       }
       this.filterRecipes();
@@ -83,6 +95,12 @@ export class RecipeListComponent implements OnInit, OnDestroy {
     } catch (error) {
       console.error('Error en loadRecipes:', error);
       this.recipes = [...SAMPLE_RECIPES];
+      // Ordenar por fecha de creación descendente
+      this.recipes.sort((a, b) => {
+        const dateA = a.createdAt instanceof Date ? a.createdAt.getTime() : new Date(a.createdAt).getTime();
+        const dateB = b.createdAt instanceof Date ? b.createdAt.getTime() : new Date(b.createdAt).getTime();
+        return dateB - dateA;
+      });
       this.filterRecipes();
     }
   }

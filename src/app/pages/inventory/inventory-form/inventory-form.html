@@ -1,65 +1,125 @@
-<div class="inventory-form-page">
-  <section class="form-hero">
-    <div class="hero-content">
-      <p class="eyebrow">Gestión de Inventario</p>
-      <h1>{{ pageTitle }}</h1>
-      <p>
-        Registra y actualiza el inventario de ingredientes en tus restaurantes.
-      </p>
-      <div class="hero-tags">
-        <span>Control de stock</span>
-        <span>Gestión eficiente</span>
+<div class="container-page">
+  <!-- Header -->
+  <div class="form-header">
+    <button class="back-button" (click)="cancel()">
+      <span class="back-icon">←</span>
+      Volver
+    </button>
+    <h1 class="form-title">📦 {{ isEditMode ? 'Editar Inventario' : 'Crear Nuevo Artículo de Inventario' }}</h1>
+    <p class="form-subtitle">{{ isEditMode ? 'Modifica la información del artículo de inventario' : 'Completa el formulario para crear un nuevo artículo de inventario' }}</p>
+  </div>
+
+  <!-- Formulario -->
+  <div class="form-container">
+    <form [formGroup]="form" (ngSubmit)="submit()" class="form">
+      <div class="form-group">
+        <label class="form-label">
+          <span class="label-icon">📝</span>
+          Nombre del Artículo
+        </label>
+        <input
+          type="text"
+          formControlName="ingredient_name"
+          placeholder="Ej. Tomate Roma, Sal marina"
+          class="form-input"
+        />
+        <div class="form-error" *ngIf="form.get('ingredient_name')?.invalid && form.get('ingredient_name')?.touched">
+          El nombre del artículo es requerido
+        </div>
       </div>
-    </div>
-    <div class="hero-image">
-      <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=900&q=80" alt="Formulario de Inventario" />
-    </div>
-  </section>
 
-  <form [formGroup]="form" (ngSubmit)="submit()" class="inventory-form">
-    <div class="form-card">
-      <h2>Datos del Inventario</h2>
-      <div class="fields-grid">
-        <label [class]="getFieldClass('restaurant_id')">
-          <span>Restaurante *</span>
-          <select formControlName="restaurant_id">
-            <option value="">Seleccionar restaurante</option>
-            <option *ngFor="let restaurant of restaurants" [value]="restaurant.id">
-              {{ restaurant.name }}
-            </option>
-          </select>
+      <div class="form-group">
+        <label class="form-label">
+          <span class="label-icon">🔢</span>
+          Cantidad
         </label>
-
-        <label [class]="getFieldClass('ingredient_id')">
-          <span>Ingrediente *</span>
-          <select formControlName="ingredient_id">
-            <option value="">Seleccionar ingrediente</option>
-            <option *ngFor="let ingredient of ingredients" [value]="ingredient.id">
-              {{ ingredient.name }}
-            </option>
-          </select>
-        </label>
-
-        <label [class]="getFieldClass('unit_id')">
-          <span>Unidad *</span>
-          <select formControlName="unit_id">
-            <option value="">Seleccionar unidad</option>
-            <option *ngFor="let unit of units" [value]="unit.id">
-              {{ unit.code }}
-            </option>
-          </select>
-        </label>
-
-        <label [class]="getFieldClass('quantity')">
-          <span>Cantidad *</span>
-          <input type="number" min="0" step="0.01" formControlName="quantity" />
-        </label>
+        <input
+          type="number"
+          min="0"
+          step="0.01"
+          formControlName="quantity"
+          placeholder="Ej. 10, 500"
+          class="form-input"
+        />
+        <div class="form-error" *ngIf="form.get('quantity')?.invalid && form.get('quantity')?.touched">
+          La cantidad es requerida y debe ser mayor a 0
+        </div>
       </div>
-    </div>
 
-    <footer class="form-actions">
-      <button type="button" class="ghost" (click)="cancel()">Cancelar</button>
-      <button type="submit" class="primary">{{ ctaLabel }}</button>
-    </footer>
-  </form>
+      <div class="form-group">
+        <label class="form-label">
+          <span class="label-icon">📏</span>
+          Unidad
+        </label>
+        <select formControlName="unit_id" class="form-select">
+          <option value="">Seleccionar unidad</option>
+          <option *ngFor="let unit of units" [value]="unit.id">
+            {{ unit.code }}
+          </option>
+        </select>
+        <div class="form-error" *ngIf="form.get('unit_id')?.invalid && form.get('unit_id')?.touched">
+          La unidad es requerida
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">
+          <span class="label-icon">🏷️</span>
+          Categoría
+        </label>
+        <select formControlName="category" class="form-select">
+          <option value="">Seleccionar categoría</option>
+          <option *ngFor="let category of categories" [value]="category">
+            {{ category }}
+          </option>
+        </select>
+        <div class="form-error" *ngIf="form.get('category')?.invalid && form.get('category')?.touched">
+          La categoría es requerida
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">
+          <span class="label-icon">🚚</span>
+          Proveedor
+        </label>
+        <select formControlName="supplier_id" class="form-select">
+          <option value="">Seleccionar proveedor</option>
+          <option *ngFor="let supplier of suppliers" [value]="supplier.id">
+            {{ supplier.name }}
+          </option>
+        </select>
+        <div class="form-error" *ngIf="form.get('supplier_id')?.invalid && form.get('supplier_id')?.touched">
+          El proveedor es requerido
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">
+          <span class="label-icon">⚠️</span>
+          Nivel de Reorden
+        </label>
+        <input
+          type="number"
+          min="0"
+          formControlName="reorder_level"
+          placeholder="Cantidad mínima antes de reordenar"
+          class="form-input"
+        />
+        <div class="form-error" *ngIf="form.get('reorder_level')?.invalid && form.get('reorder_level')?.touched">
+          El nivel de reorden debe ser un número válido
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn-cancel" (click)="cancel()">
+          Cancelar
+        </button>
+        <button type="submit" class="btn-save" [disabled]="form.invalid">
+          <span class="save-icon">✓</span>
+          {{ isEditMode ? 'Actualizar Inventario' : 'Guardar Inventario' }}
+        </button>
+      </div>
+    </form>
+  </div>
 </div>

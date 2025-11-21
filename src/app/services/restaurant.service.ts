@@ -43,10 +43,16 @@ interface AssignUserRequest {
 })
 export class RestaurantService {
   private readonly apiUrl = `${API_CONFIG.baseUrl}/restaurants`;
+  private readonly storageKey = 'restaurants';
   private restaurantsSubject = new BehaviorSubject<Restaurant[]>([]);
   public restaurants$: Observable<Restaurant[]> = this.restaurantsSubject.asObservable();
 
   constructor(private http: HttpClient) {
+    // Cargar desde localStorage primero
+    const localRestaurants = this.loadFromLocalStorage();
+    if (localRestaurants.length > 0) {
+      this.restaurantsSubject.next(localRestaurants);
+    }
     this.loadRestaurants();
   }
 
@@ -56,13 +62,49 @@ export class RestaurantService {
   private loadRestaurants(): void {
     this.http.get<ApiRestaurant[]>(this.apiUrl).pipe(
       map(apiRestaurants => apiRestaurants.map(api => this.apiToRestaurant(api))),
+      tap(restaurants => {
+        this.saveToLocalStorage(restaurants);
+      }),
       catchError(error => {
-        console.warn('Error al cargar restaurantes desde API:', error);
-        return of([]);
+        console.warn('Error al cargar restaurantes desde API, usando localStorage:', error);
+        const localRestaurants = this.loadFromLocalStorage();
+        return of(localRestaurants);
       })
     ).subscribe(restaurants => {
       this.restaurantsSubject.next(restaurants);
     });
+  }
+
+  /**
+   * Guardar restaurantes en localStorage
+   */
+  private saveToLocalStorage(restaurants: Restaurant[]): void {
+    try {
+      localStorage.setItem(this.storageKey, JSON.stringify(restaurants));
+    } catch (error) {
+      console.error('Error al guardar restaurantes en localStorage:', error);
+    }
+  }
+
+  /**
+   * Cargar restaurantes desde localStorage
+   */
+  private loadFromLocalStorage(): Restaurant[] {
+    try {
+      const stored = localStorage.getItem(this.storageKey);
+      if (stored) {
+        const restaurants = JSON.parse(stored);
+        // Convertir fechas de string a Date
+        return restaurants.map((r: any) => ({
+          ...r,
+          createdAt: r.createdAt ? new Date(r.createdAt) : new Date(),
+          updatedAt: r.updatedAt ? new Date(r.updatedAt) : new Date()
+        }));
+      }
+    } catch (error) {
+      console.error('Error al cargar restaurantes desde localStorage:', error);
+    }
+    return [];
   }
 
   /**
@@ -156,12 +198,14 @@ export class RestaurantService {
       tap(newRestaurant => {
         const restaurants = [newRestaurant, ...this.restaurantsSubject.value];
         this.restaurantsSubject.next(restaurants);
+        this.saveToLocalStorage(restaurants);
       }),
       catchError(error => {
         console.error('Error al crear restaurante en API, guardando localmente:', error);
         // Fallback: guardar localmente
         const restaurants = [restaurant, ...this.restaurantsSubject.value];
         this.restaurantsSubject.next(restaurants);
+        this.saveToLocalStorage(restaurants);
         return of(restaurant);
       })
     ).subscribe();
@@ -188,6 +232,7 @@ export class RestaurantService {
           r.id === id ? { ...r, ...updated, ...restaurant } : r
         );
         this.restaurantsSubject.next(restaurants);
+        this.saveToLocalStorage(restaurants);
       }),
       catchError(error => {
         console.error('Error al actualizar restaurante en API, actualizando localmente:', error);
@@ -196,6 +241,7 @@ export class RestaurantService {
           r.id === id ? { ...r, ...restaurant, updatedAt: new Date() } : r
         );
         this.restaurantsSubject.next(restaurants);
+        this.saveToLocalStorage(restaurants);
         return of(restaurant as Restaurant);
       })
     ).subscribe();
@@ -209,12 +255,14 @@ export class RestaurantService {
       tap(() => {
         const restaurants = this.restaurantsSubject.value.filter(r => r.id !== id);
         this.restaurantsSubject.next(restaurants);
+        this.saveToLocalStorage(restaurants);
       }),
       catchError(error => {
         console.error('Error al eliminar restaurante:', error);
         // Fallback: eliminar localmente
         const restaurants = this.restaurantsSubject.value.filter(r => r.id !== id);
         this.restaurantsSubject.next(restaurants);
+        this.saveToLocalStorage(restaurants);
         return of(void 0);
       })
     ).subscribe();

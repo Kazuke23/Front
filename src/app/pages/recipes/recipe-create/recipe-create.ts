@@ -159,7 +159,8 @@ export class RecipeCreateComponent implements OnInit, OnDestroy {
           createdAt: new Date(),
           updatedAt: new Date()
         };
-        recipes.push(newRecipe);
+        // Agregar al principio del array para que aparezca primero
+        recipes.unshift(newRecipe);
       }
       
       // Guardar en localStorage

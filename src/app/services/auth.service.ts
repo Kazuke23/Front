@@ -84,13 +84,13 @@ export class AuthService {
    * Iniciar sesión con email y contraseña
    */
   login(email: string, password: string): Observable<LoginResponse> {
-    // Credenciales demo para desarrollo
+    // Credenciales para desarrollo
     const demoUsers: { [key: string]: { password: string; user: User } } = {
-      'admin@recetario.com': {
-        password: '123456',
+      'ander2@example.com': {
+        password: 'password1234',
         user: {
           id: '1',
-          email: 'admin@recetario.com',
+          email: 'ander2@example.com',
           nombre: 'Administrador',
           full_name: 'Administrador',
           rol: 'Administrador',
@@ -98,11 +98,11 @@ export class AuthService {
           username: 'admin'
         }
       },
-      'chef@recetario.com': {
-        password: 'chef123',
+      'ander@example.com': {
+        password: 'password1234',
         user: {
           id: '2',
-          email: 'chef@recetario.com',
+          email: 'ander@example.com',
           nombre: 'Chef',
           full_name: 'Chef',
           rol: 'Chef',

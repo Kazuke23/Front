@@ -1,7 +1,7 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { PurchaseService } from '../../../services/purchase.service';
 import { NotificationService } from '../../../services/notification.service';
@@ -21,7 +21,7 @@ import {
 @Component({
   selector: 'app-purchase-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule],
   templateUrl: './purchase-form.html',
   styleUrls: ['./purchase-form.css']
 })
@@ -70,9 +70,13 @@ export class PurchaseFormComponent implements OnInit, OnDestroy {
   }
 
   private buildForm(): void {
+    const today = new Date().toISOString().split('T')[0];
     this.form = this.fb.group({
-      restaurant_id: [this.restaurants[0]?.id ?? '', Validators.required],
-      supplier_id: [this.suppliers[0]?.id ?? '', Validators.required],
+      name: ['', Validators.required],
+      order_date: [today, Validators.required],
+      total_amount: ['', [Validators.required, Validators.min(0.01)]],
+      restaurant_id: [this.restaurants.length > 0 ? this.restaurants[0].id : '', Validators.required],
+      supplier_id: [this.suppliers.length > 0 ? this.suppliers[0].id : '', Validators.required],
       status: ['pending', Validators.required],
       items: this.fb.array([])
     });
@@ -127,7 +131,17 @@ export class PurchaseFormComponent implements OnInit, OnDestroy {
           return;
         }
         this.currentOrder = order;
+        const orderDate = order.orderDate || order.order_date;
+        const dateValue = orderDate instanceof Date 
+          ? orderDate.toISOString().split('T')[0] 
+          : orderDate 
+            ? (typeof orderDate === 'string' ? orderDate.split('T')[0] : orderDate)
+            : new Date().toISOString().split('T')[0];
+        
         this.form.patchValue({
+          name: order.name || '',
+          order_date: dateValue,
+          total_amount: order.totalAmount || order.total_amount || 0,
           restaurant_id: order.restaurant_id,
           supplier_id: order.supplier_id,
           status: order.status
@@ -159,7 +173,17 @@ export class PurchaseFormComponent implements OnInit, OnDestroy {
           return;
         }
         this.currentOrder = localOrder;
+        const orderDate = localOrder.orderDate || localOrder.order_date;
+        const dateValue = orderDate instanceof Date 
+          ? orderDate.toISOString().split('T')[0] 
+          : orderDate 
+            ? (typeof orderDate === 'string' ? orderDate.split('T')[0] : orderDate)
+            : new Date().toISOString().split('T')[0];
+        
         this.form.patchValue({
+          name: localOrder.name || '',
+          order_date: dateValue,
+          total_amount: localOrder.totalAmount || localOrder.total_amount || 0,
           restaurant_id: localOrder.restaurant_id,
           supplier_id: localOrder.supplier_id,
           status: localOrder.status
@@ -186,27 +210,39 @@ export class PurchaseFormComponent implements OnInit, OnDestroy {
   }
 
   submit(): void {
-    if (this.form.invalid || this.itemsFormArray.length === 0) {
+    // Validar campos requeridos manualmente
+    if (!this.form.get('name')?.value || !this.form.get('order_date')?.value || 
+        !this.form.get('total_amount')?.value || !this.form.get('restaurant_id')?.value || 
+        !this.form.get('supplier_id')?.value) {
       this.form.markAllAsTouched();
-      if (this.itemsFormArray.length === 0) {
-        this.notificationService.warning('Debe agregar al menos un ítem a la compra.');
-      }
+      this.notificationService.warning('Por favor completa todos los campos requeridos');
+      return;
+    }
+    
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
       return;
     }
 
     const value = this.form.value;
 
-    const items: PurchaseItem[] = value.items.map((item: any) => ({
-      ingredient_id: item.ingredient_id,
-      quantity: Number(item.quantity),
-      unit_id: item.unit_id,
-      price: Number(item.price)
-    }));
+    // Si hay items, usarlos; si no, crear un array vacío
+    const items: PurchaseItem[] = value.items && value.items.length > 0
+      ? value.items.map((item: any) => ({
+          ingredient_id: item.ingredient_id,
+          quantity: Number(item.quantity),
+          unit_id: item.unit_id,
+          price: Number(item.price)
+        }))
+      : [];
 
     const payload: Omit<PurchaseOrder, 'id'> = {
+      name: value.name || `Compra ${new Date().toLocaleDateString()}`,
+      order_date: value.order_date || new Date().toISOString().split('T')[0],
+      total_amount: value.total_amount && value.total_amount !== '' ? Number(value.total_amount) : 0,
       restaurant_id: value.restaurant_id,
       supplier_id: value.supplier_id,
-      status: value.status,
+      status: value.status || 'pending',
       items: items
     };
 

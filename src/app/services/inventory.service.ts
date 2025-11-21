@@ -9,6 +9,7 @@ import {
   INVENTORY_INGREDIENTS,
   INVENTORY_UNITS,
   INVENTORY_SUPPLIERS,
+  INVENTORY_CATEGORIES,
   InventoryRestaurant,
   InventoryIngredient,
   InventoryUnit,
@@ -69,7 +70,8 @@ export class InventoryService {
     const tempId = this.generateId();
     const tempItem: InventoryItem = {
       ...item,
-      id: tempId
+      id: tempId,
+      updatedAt: item.updatedAt || new Date()
     };
     const updated = [tempItem, ...this.inventorySubject.value];
     this.inventorySubject.next(updated);
@@ -107,7 +109,7 @@ export class InventoryService {
     const items = this.inventorySubject.value;
     const index = items.findIndex(item => item.id === id);
     if (index !== -1) {
-      const updatedItem: InventoryItem = { ...items[index], quantity };
+      const updatedItem: InventoryItem = { ...items[index], quantity, updatedAt: new Date() };
       const updated = [...items];
       updated[index] = updatedItem;
       this.inventorySubject.next(updated);
@@ -184,8 +186,7 @@ export class InventoryService {
   }
 
   getCategories(): string[] {
-    // Categorías básicas
-    return ['Vegetales', 'Carnes', 'Básicos', 'Aceites', 'Lácteos', 'Especias', 'Bebidas'];
+    return [...INVENTORY_CATEGORIES];
   }
 
   getSummary() {
@@ -237,11 +238,34 @@ export class InventoryService {
     const restaurant = INVENTORY_RESTAURANTS.find(r => r.id === item.restaurant_id);
     const ingredient = INVENTORY_INGREDIENTS.find(i => i.id === item.ingredient_id);
     const unit = INVENTORY_UNITS.find(u => u.id === item.unit_id);
+    const supplier = item.supplier_id ? INVENTORY_SUPPLIERS.find(s => s.id === item.supplier_id) : null;
+
+    // Asignar categoría basada en el nombre del ingrediente si no existe
+    let category = item.category;
+    if (!category && ingredient?.name) {
+      const nameLower = ingredient.name.toLowerCase();
+      if (nameLower.includes('tomate') || nameLower.includes('cebolla') || nameLower.includes('pimiento')) {
+        category = 'Vegetales';
+      } else if (nameLower.includes('pollo') || nameLower.includes('carne') || nameLower.includes('pescado')) {
+        category = 'Carnes';
+      } else if (nameLower.includes('harina') || nameLower.includes('arroz') || nameLower.includes('pasta')) {
+        category = 'Básicos';
+      } else if (nameLower.includes('leche') || nameLower.includes('queso') || nameLower.includes('yogur')) {
+        category = 'Lácteos';
+      } else if (nameLower.includes('aceite')) {
+        category = 'Aceites';
+      } else if (nameLower.includes('sal') || nameLower.includes('pimienta') || nameLower.includes('especia')) {
+        category = 'Especias';
+      } else {
+        category = 'Otros';
+      }
+    }
 
     let status: 'available' | 'low' | 'out' = 'available';
+    const reorderLevel = item.reorder_level || 10;
     if (item.quantity === 0) {
       status = 'out';
-    } else if (item.quantity < 10) {
+    } else if (item.quantity < reorderLevel) {
       status = 'low';
     }
 
@@ -250,6 +274,8 @@ export class InventoryService {
       restaurantName: restaurant?.name,
       ingredientName: ingredient?.name,
       unitCode: unit?.code,
+      supplierName: supplier?.name,
+      category: category || 'Otros',
       status
     };
   }
