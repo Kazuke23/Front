@@ -3,7 +3,7 @@ name: Deploy Angular to S3
 on:
   push:
     branches:
-      - main   #v22
+      - main   #v23
 
 jobs:
   deploy:
@@ -22,9 +22,21 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Build Angular for S3
+      - name: Build Angular (CLIENT ONLY - NO SSR)
         run: |
-          npx ng build --configuration production --base-href ./
+          # Deshabilita completamente el SSR
+          npx ng build --configuration production --no-ssr
+
+      - name: Verify client build
+        run: |
+          echo "=== VERIFICANDO BUILD DEL CLIENTE ==="
+          if [ -d "dist/frontend/browser" ]; then
+            echo "✅ Build del cliente generado"
+            ls -la dist/frontend/browser/ | head -10
+          else
+            echo "❌ No se generó build del cliente"
+            exit 1
+          fi
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -35,19 +47,20 @@ jobs:
 
       - name: Deploy to S3
         run: |
-          echo "🚀 Desplegando desde: dist/frontend/browser/"
+          echo "🚀 Desplegando aplicación..."
           aws s3 sync dist/frontend/browser/ s3://${{ secrets.S3_BUCKET_NAME }} --delete
 
       - name: Configure S3 for SPA
         run: |
-          echo "🌐 Configurando S3 para Single Page Application..."
+          echo "🌐 Configurando S3 para Angular..."
           aws s3 website s3://${{ secrets.S3_BUCKET_NAME }} \
             --index-document index.html \
             --error-document index.html
 
-      - name: Verify deployment
+      - name: Final verification
         run: |
-          echo "📊 Archivos desplegados en S3:"
+          echo "✅ Verificación final:"
           aws s3 ls s3://${{ secrets.S3_BUCKET_NAME }} --recursive --human-readable
-          echo "🎉 ¡Despliegue exitoso!"
+          echo ""
+          echo "🎉 ¡APLICACIÓN DESPLEGADA!"
           echo "🌐 URL: http://${{ secrets.S3_BUCKET_NAME }}.s3-website.${{ secrets.AWS_REGION }}.amazonaws.com"
