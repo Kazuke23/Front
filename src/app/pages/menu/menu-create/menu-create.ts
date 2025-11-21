@@ -75,7 +75,7 @@ export class MenuCreate implements OnInit, OnDestroy {
       // Si no se encuentra localmente, intentar cargar desde la API
       // Buscar en todos los restaurantes
       this.restaurantService.getRestaurantsObservable().subscribe({
-        next: (restaurants) => {
+        next: (restaurants: Restaurant[]) => {
           let found = false;
           for (const restaurant of restaurants) {
             if (found) break;

@@ -1,22 +1,11 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subscription } from 'rxjs';
 import { PurchaseService } from '../../../services/purchase.service';
 import { NotificationService } from '../../../services/notification.service';
-import {
-  PurchaseOrder,
-  PurchaseItem,
-  PurchaseStatus,
-  PurchaseOrderDisplay
-} from '../../../models/purchase.model';
-import {
-  InventoryRestaurant,
-  InventorySupplier,
-  InventoryIngredient,
-  InventoryUnit
-} from '../../../models/inventory.model';
+import { PurchaseOrder, PurchaseItem, PurchaseStatus } from '../../../models/purchase.model';
+import { InventoryRestaurant, InventorySupplier } from '../../../models/inventory.model';
 
 @Component({
   selector: 'app-purchase-form',
@@ -25,19 +14,12 @@ import {
   templateUrl: './purchase-form.html',
   styleUrls: ['./purchase-form.css']
 })
-export class PurchaseFormComponent implements OnInit, OnDestroy {
+export class PurchaseFormComponent implements OnInit {
   form!: FormGroup;
   isEditMode = false;
-  currentOrder?: PurchaseOrderDisplay;
-  pageTitle = 'Nueva Compra';
-  ctaLabel = 'Guardar compra';
-  private subscriptions: Subscription[] = [];
-
+  loading = false;
   restaurants: InventoryRestaurant[] = [];
   suppliers: InventorySupplier[] = [];
-  ingredients: InventoryIngredient[] = [];
-  units: InventoryUnit[] = [];
-  estados: PurchaseStatus[] = ['pending', 'in_process', 'completed', 'cancelled'];
 
   constructor(
     private fb: FormBuilder,
@@ -48,8 +30,6 @@ export class PurchaseFormComponent implements OnInit, OnDestroy {
   ) {
     this.restaurants = this.purchaseService.getRestaurants();
     this.suppliers = this.purchaseService.getSuppliers();
-    this.ingredients = this.purchaseService.getIngredients();
-    this.units = this.purchaseService.getUnits();
   }
 
   ngOnInit(): void {
@@ -57,226 +37,119 @@ export class PurchaseFormComponent implements OnInit, OnDestroy {
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
       this.isEditMode = true;
-      this.pageTitle = 'Editar Compra';
-      this.ctaLabel = 'Actualizar compra';
       this.loadOrder(id);
     } else {
-      this.addItem();
+      // Establecer fecha por defecto a hoy
+      const today = new Date().toISOString().split('T')[0];
+      this.form.patchValue({ date: today });
     }
-  }
-
-  ngOnDestroy(): void {
-    this.subscriptions.forEach(sub => sub.unsubscribe());
   }
 
   private buildForm(): void {
     this.form = this.fb.group({
-      restaurant_id: [this.restaurants[0]?.id ?? '', Validators.required],
-      supplier_id: [this.suppliers[0]?.id ?? '', Validators.required],
-      status: ['pending', Validators.required],
-      items: this.fb.array([])
+      name: ['', [Validators.required]],
+      date: ['', [Validators.required]],
+      value: [0, [Validators.required, Validators.min(0.01)]],
+      supplier_id: ['', [Validators.required]],
+      restaurant_id: ['', [Validators.required]]
     });
-  }
-
-  get itemsFormArray(): FormArray {
-    return this.form.get('items') as FormArray;
-  }
-
-  addItem(): void {
-    const itemForm = this.fb.group({
-      ingredient_id: ['', Validators.required],
-      quantity: [1, [Validators.required, Validators.min(0.01)]],
-      unit_id: [this.units[0]?.id ?? '', Validators.required],
-      price: [0, [Validators.required, Validators.min(0)]]
-    });
-
-    const ingredientSub = itemForm.get('ingredient_id')?.valueChanges.subscribe(value => {
-      const ingredient = this.ingredients.find(i => i.id === value);
-      if (ingredient) {
-        const unitId = ingredient.defaultUnitId;
-        const unit = this.units.find(u => u.id === unitId);
-        if (unit) {
-          itemForm.get('unit_id')?.setValue(unitId, { emitEvent: false });
-        }
-      }
-    });
-
-    const priceQtySub = itemForm.valueChanges.subscribe(() => {
-      this.updateTotal();
-    });
-
-    this.subscriptions.push(ingredientSub!, priceQtySub);
-    this.itemsFormArray.push(itemForm);
-  }
-
-  removeItem(index: number): void {
-    this.itemsFormArray.removeAt(index);
-    this.updateTotal();
-  }
-
-  private updateTotal(): void {
-    // El total se calcula en el backend, aquí solo para mostrar
   }
 
   private loadOrder(id: string): void {
     this.purchaseService.getById(id).subscribe({
       next: (order) => {
-        if (!order) {
-          this.notificationService.warning('No se encontró la orden solicitada.');
-          setTimeout(() => this.router.navigate(['/compras']), 1500);
-          return;
+        if (order) {
+          const orderDate = new Date().toISOString().split('T')[0];
+          this.form.patchValue({
+            name: `Compra ${order.id}`,
+            date: orderDate,
+            value: order.totalAmount || 0,
+            supplier_id: order.supplier_id,
+            restaurant_id: order.restaurant_id
+          });
         }
-        this.currentOrder = order;
-        this.form.patchValue({
-          restaurant_id: order.restaurant_id,
-          supplier_id: order.supplier_id,
-          status: order.status
-        });
-
-        this.itemsFormArray.clear();
-        order.items.forEach((item: any) => {
-          const itemForm = this.fb.group({
-            ingredient_id: [item.ingredient_id, Validators.required],
-            quantity: [item.quantity, [Validators.required, Validators.min(0.01)]],
-            unit_id: [item.unit_id, Validators.required],
-            price: [item.price, [Validators.required, Validators.min(0)]]
-          });
-
-          const priceQtySub = itemForm.valueChanges.subscribe(() => {
-            this.updateTotal();
-          });
-          this.subscriptions.push(priceQtySub);
-
-          this.itemsFormArray.push(itemForm);
-        });
       },
-      error: () => {
-        // Si falla, intentar con datos locales
-        const localOrder = this.purchaseService.getByIdSync(id);
-        if (!localOrder) {
-          this.notificationService.warning('No se encontró la orden solicitada.');
-          setTimeout(() => this.router.navigate(['/compras']), 1500);
-          return;
-        }
-        this.currentOrder = localOrder;
-        this.form.patchValue({
-          restaurant_id: localOrder.restaurant_id,
-          supplier_id: localOrder.supplier_id,
-          status: localOrder.status
-        });
-
-        this.itemsFormArray.clear();
-        localOrder.items.forEach((item: any) => {
-          const itemForm = this.fb.group({
-            ingredient_id: [item.ingredient_id, Validators.required],
-            quantity: [item.quantity, [Validators.required, Validators.min(0.01)]],
-            unit_id: [item.unit_id, Validators.required],
-            price: [item.price, [Validators.required, Validators.min(0)]]
-          });
-
-          const priceQtySub = itemForm.valueChanges.subscribe(() => {
-            this.updateTotal();
-          });
-          this.subscriptions.push(priceQtySub);
-
-          this.itemsFormArray.push(itemForm);
-        });
+      error: (error: any) => {
+        console.error('Error loading order:', error);
       }
     });
   }
 
   submit(): void {
-    if (this.form.invalid || this.itemsFormArray.length === 0) {
-      this.form.markAllAsTouched();
-      if (this.itemsFormArray.length === 0) {
-        this.notificationService.warning('Debe agregar al menos un ítem a la compra.');
+    if (this.form.valid) {
+      this.loading = true;
+      const formValue = this.form.value;
+
+      // Crear items básicos para la API (un item genérico con el valor total)
+      const items: PurchaseItem[] = [{
+        ingredient_id: 'default',
+        quantity: 1,
+        unit_id: 'default',
+        price: formValue.value
+      }];
+
+      const payload: Omit<PurchaseOrder, 'id'> = {
+        restaurant_id: formValue.restaurant_id,
+        supplier_id: formValue.supplier_id,
+        status: 'pending' as PurchaseStatus,
+        items: items
+      };
+
+      if (this.isEditMode) {
+        const id = this.route.snapshot.paramMap.get('id');
+        if (id) {
+          this.purchaseService.update(id, payload).subscribe({
+            next: () => {
+              this.loading = false;
+              this.notificationService.success('¡Compra actualizada exitosamente!');
+              setTimeout(() => this.router.navigate(['/compras']), 1500);
+            },
+            error: (error: any) => {
+              console.error('Error updating purchase:', error);
+              this.loading = false;
+              this.notificationService.error('No se pudo actualizar la compra.');
+            }
+          });
+        }
+      } else {
+        this.purchaseService.create(payload).subscribe({
+          next: () => {
+            this.loading = false;
+            this.notificationService.success('¡Compra creada exitosamente!');
+            setTimeout(() => this.router.navigate(['/compras']), 1500);
+          },
+          error: (error: any) => {
+            console.error('Error creating purchase:', error);
+            this.loading = false;
+            this.notificationService.error('No se pudo crear la compra.');
+          }
+        });
       }
-      return;
-    }
-
-    const value = this.form.value;
-
-    const items: PurchaseItem[] = value.items.map((item: any) => ({
-      ingredient_id: item.ingredient_id,
-      quantity: Number(item.quantity),
-      unit_id: item.unit_id,
-      price: Number(item.price)
-    }));
-
-    const payload: Omit<PurchaseOrder, 'id'> = {
-      restaurant_id: value.restaurant_id,
-      supplier_id: value.supplier_id,
-      status: value.status,
-      items: items
-    };
-
-    if (this.isEditMode && this.currentOrder) {
-      const orderId = this.currentOrder.id;
-      this.purchaseService.update(orderId, payload).subscribe({
-        next: () => {
-          this.notificationService.success(`¡Orden #${orderId} actualizada exitosamente!`);
-          setTimeout(() => this.router.navigate(['/compras']), 1500);
-        },
-        error: (error) => {
-          console.error('Error al actualizar orden:', error);
-          this.notificationService.error('No se pudo actualizar la orden. Por favor, intente nuevamente.');
-        }
-      });
     } else {
-      this.purchaseService.create(payload).subscribe({
-        next: () => {
-          this.notificationService.success('¡Nueva orden de compra creada exitosamente!');
-          setTimeout(() => this.router.navigate(['/compras']), 1500);
-        },
-        error: (error) => {
-          console.error('Error al crear orden:', error);
-          this.notificationService.error('No se pudo crear la orden. Por favor, intente nuevamente.');
-        }
-      });
+      this.markFormGroupTouched(this.form);
     }
   }
 
-  cancel(): void {
+  goBack(): void {
     this.router.navigate(['/compras']);
   }
 
-  getFieldClass(field: string): string {
-    const control = this.form.get(field);
-    if (!control) return '';
-    return control.invalid && control.touched ? 'invalid' : '';
+  cancel(): void {
+    this.goBack();
   }
 
-  getItemFieldClass(index: number, field: string): string {
-    const itemForm = this.itemsFormArray.at(index);
-    if (!itemForm) return '';
-    const control = itemForm.get(field);
-    if (!control) return '';
-    return control.invalid && control.touched ? 'invalid' : '';
+  getFieldClass(fieldName: string): string {
+    const field = this.form.get(fieldName);
+    if (field?.touched && field?.invalid) {
+      return 'error';
+    }
+    return '';
   }
 
-  getTotal(): number {
-    return this.itemsFormArray.controls.reduce((sum, item) => {
-      const quantity = item.get('quantity')?.value || 0;
-      const price = item.get('price')?.value || 0;
-      return sum + (quantity * price);
-    }, 0);
-  }
-
-  getItemSubtotal(index: number): number {
-    const itemForm = this.itemsFormArray.at(index);
-    if (!itemForm) return 0;
-    const quantity = itemForm.get('quantity')?.value || 0;
-    const price = itemForm.get('price')?.value || 0;
-    return quantity * price;
-  }
-
-  getStatusLabel(status: PurchaseStatus): string {
-    const labels: { [key: string]: string } = {
-      'pending': 'Pendiente',
-      'completed': 'Completado',
-      'cancelled': 'Cancelado',
-      'in_process': 'En Proceso'
-    };
-    return labels[status] || status;
+  private markFormGroupTouched(formGroup: FormGroup): void {
+    Object.keys(formGroup.controls).forEach(key => {
+      const control = formGroup.get(key);
+      control?.markAsTouched();
+    });
   }
 }
