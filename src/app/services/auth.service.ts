@@ -137,14 +137,15 @@ export class AuthService {
           // Construir usuario desde la respuesta
           let user: User | undefined = response.user;
           if (!user && response.userId) {
+          
             user = {
               id: response.userId,
               email: response.email || email,
               username: response.username,
               nombre: response.username,
               full_name: response.username,
-              role: response.roleName,
-              rol: response.roleName as 'Administrador' | 'Chef' | 'Usuario'
+              role: response.roleName === 'CHEF' ? 'Chef' : 'Administrador' as 'Administrador' | 'Chef' | 'Usuario',
+              rol: response.roleName === 'CHEF' ? 'Chef' : 'Administrador' as 'Administrador' | 'Chef' | 'Usuario'
             };
           }
           
