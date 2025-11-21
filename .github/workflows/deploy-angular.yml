@@ -3,7 +3,7 @@ name: Deploy Angular to S3
 on:
   push:
     branches:
-      - main #v18
+      - main  #v18
 
 jobs:
   deploy:
@@ -22,18 +22,25 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Build Angular
-        run: npx ng build --configuration production
-
-      - name: Debug - Show ALL build files
+      - name: Build Angular with correct base href
         run: |
-          echo "=== ESTRUCTURA COMPLETA DE DIST ==="
-          ls -la dist/
-          echo "=== TODOS LOS ARCHIVOS GENERADOS ==="
-          find dist -type f | head -30
-          echo "=== TAMAÑO DE ARCHIVOS ==="
-          du -sh dist/
-          find dist -name "*.js" -o -name "*.css" -o -name "*.html" | xargs ls -la
+          npx ng build --configuration production --base-href /
+
+      - name: Debug - Check HTML and file structure
+        run: |
+          echo "=== CONTENIDO DE INDEX.HTML ==="
+          find dist -name "index.html" -type f -exec cat {} \;
+          echo ""
+          echo "=== ARCHIVOS EN LA CARPETA DEL BUILD ==="
+          if [ -d "dist/frontend/browser" ]; then
+            BUILD_DIR="dist/frontend/browser"
+          elif [ -d "dist/browser" ]; then
+            BUILD_DIR="dist/browser"
+          else
+            BUILD_DIR="dist"
+          fi
+          echo "📁 Carpeta de build: $BUILD_DIR"
+          ls -la "$BUILD_DIR/" | head -15
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -42,28 +49,25 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Deploy ALL files to S3
+      - name: Deploy with proper structure
         run: |
-          echo "🚀 DESPLEGANDO TODOS LOS ARCHIVOS..."
-          
-          # Encuentra la carpeta correcta del build
+          # Encuentra la carpeta correcta
           if [ -d "dist/frontend/browser" ]; then
-            echo "📁 Carpeta: dist/frontend/browser"
-            echo "📊 Contenido:"
-            ls -la dist/frontend/browser/ | head -10
-            aws s3 sync dist/frontend/browser/ s3://${{ secrets.S3_BUCKET_NAME }} --delete
+            DEPLOY_DIR="dist/frontend/browser"
           elif [ -d "dist/browser" ]; then
-            echo "📁 Carpeta: dist/browser"
-            echo "📊 Contenido:"
-            ls -la dist/browser/ | head -10
-            aws s3 sync dist/browser/ s3://${{ secrets.S3_BUCKET_NAME }} --delete
+            DEPLOY_DIR="dist/browser"
           else
-            echo "📁 Carpeta: dist/"
-            echo "📊 Contenido:"
-            ls -la dist/ | head -10
-            aws s3 sync dist/ s3://${{ secrets.S3_BUCKET_NAME }} --delete
+            DEPLOY_DIR="dist"
           fi
           
-          echo "✅ Verificando archivos en S3..."
+          echo "🚀 Desplegando desde: $DEPLOY_DIR"
+          aws s3 sync "$DEPLOY_DIR"/ s3://${{ secrets.S3_BUCKET_NAME }} --delete
+          
+          echo "✅ Verificando archivos en S3:"
           aws s3 ls s3://${{ secrets.S3_BUCKET_NAME }} --recursive --human-readable
-          echo "🎉 ¡TODOS los archivos desplegados!"
+
+      - name: Enable S3 static website hosting
+        run: |
+          echo "🌐 Configurando hosting estático en S3..."
+          aws s3 website s3://${{ secrets.S3_BUCKET_NAME }} --index-document index.html --error-document index.html
+          echo "✅ Hosting estático habilitado"
