@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, tap, map, catchError, of } from 'rxjs';
+import { BehaviorSubject, Observable, tap, map, catchError, of, forkJoin } from 'rxjs';
 import { PurchaseOrder, PurchaseItem, PURCHASE_SAMPLE, PurchaseStatus, PurchaseOrderDisplay } from '../models/purchase.model';
 import { INVENTORY_RESTAURANTS, INVENTORY_SUPPLIERS, INVENTORY_INGREDIENTS, INVENTORY_UNITS } from '../models/inventory.model';
 
@@ -23,9 +23,9 @@ export class PurchaseService {
     this.loadFromAPI();
   }
 
-  // GET /purchases
+  // GET /purchase-orders
   getAll(): Observable<PurchaseOrderDisplay[]> {
-    return this.http.get<PurchaseOrder[]>(`${API_BASE_URL}/purchases`).pipe(
+    return this.http.get<PurchaseOrder[]>(`${API_BASE_URL}/purchase-orders`).pipe(
       tap(orders => {
         this.purchaseSubject.next(orders);
         this.persist(); // Guardar en localStorage como cache
@@ -39,9 +39,9 @@ export class PurchaseService {
     );
   }
 
-  // GET /purchases/{id}
+  // GET /purchase-orders/{id}
   getById(id: string): Observable<PurchaseOrderDisplay> {
-    return this.http.get<PurchaseOrder>(`${API_BASE_URL}/purchases/${id}`).pipe(
+    return this.http.get<PurchaseOrder>(`${API_BASE_URL}/purchase-orders/${id}`).pipe(
       map(order => this.enrichOrder(order)),
       catchError(error => {
         console.warn('Error al obtener orden del backend:', error);
@@ -52,8 +52,15 @@ export class PurchaseService {
     );
   }
 
-  // POST /purchases
+  // POST /purchase-orders
   create(order: Omit<PurchaseOrder, 'id'>): Observable<PurchaseOrder> {
+    // Crear orden sin items primero (según la API)
+    const createRequest = {
+      restaurant_id: order.restaurant_id,
+      supplier_id: order.supplier_id,
+      status: order.status || 'pending'
+    };
+
     // Crear inmediatamente en el estado local con ID temporal
     const tempId = this.generateId();
     const tempOrder: PurchaseOrder = {
@@ -64,22 +71,56 @@ export class PurchaseService {
     this.purchaseSubject.next(updated);
     this.persist();
 
-    // Luego intentar crear en el backend
-    return this.http.post<PurchaseOrder>(`${API_BASE_URL}/purchases`, order).pipe(
+    // Crear orden en el backend
+    return this.http.post<PurchaseOrder>(`${API_BASE_URL}/purchase-orders`, createRequest).pipe(
       tap(newOrder => {
-        // Reemplazar la orden temporal con la del backend
-        const orders = this.purchaseSubject.value;
-        const index = orders.findIndex(o => o.id === tempId);
-        if (index !== -1) {
-          const finalUpdated = [...orders];
-          finalUpdated[index] = newOrder;
-          this.purchaseSubject.next(finalUpdated);
-          this.persist();
+        // Agregar items a la orden creada si existen
+        if (order.items && order.items.length > 0) {
+          const itemObservables = order.items.map(item =>
+            this.addItemToOrder(newOrder.id, item).pipe(catchError(() => of(item)))
+          );
+          
+          forkJoin(itemObservables).subscribe({
+            next: () => {
+              // Recargar la orden completa después de agregar todos los items
+              this.getById(newOrder.id).subscribe(completeOrder => {
+                const orders = this.purchaseSubject.value;
+                const index = orders.findIndex(o => o.id === tempId || o.id === newOrder.id);
+                if (index !== -1) {
+                  const finalUpdated = [...orders];
+                  finalUpdated[index] = completeOrder as any;
+                  this.purchaseSubject.next(finalUpdated);
+                  this.persist();
+                } else {
+                  // Si no existe, agregarla
+                  this.purchaseSubject.next([completeOrder as any, ...this.purchaseSubject.value]);
+                  this.persist();
+                }
+              });
+            },
+            error: (err) => {
+              console.error('Error al agregar items:', err);
+              // Aún así actualizar con la orden básica
+              const orders = this.purchaseSubject.value;
+              const index = orders.findIndex(o => o.id === tempId);
+              if (index !== -1) {
+                const finalUpdated = [...orders];
+                finalUpdated[index] = newOrder;
+                this.purchaseSubject.next(finalUpdated);
+                this.persist();
+              }
+            }
+          });
         } else {
-          // Si no se encuentra la temporal, agregar la nueva
-          const finalUpdated = [newOrder, ...this.purchaseSubject.value.filter(o => o.id !== tempId)];
-          this.purchaseSubject.next(finalUpdated);
-          this.persist();
+          // Si no hay items, solo actualizar la orden
+          const orders = this.purchaseSubject.value;
+          const index = orders.findIndex(o => o.id === tempId);
+          if (index !== -1) {
+            const finalUpdated = [...orders];
+            finalUpdated[index] = newOrder;
+            this.purchaseSubject.next(finalUpdated);
+            this.persist();
+          }
         }
       }),
       catchError(error => {
@@ -90,7 +131,7 @@ export class PurchaseService {
     );
   }
 
-  // PUT /purchases/{id}
+  // PUT /purchase-orders/{id}
   update(id: string, changes: Partial<PurchaseOrder>): Observable<PurchaseOrder> {
     // Actualizar inmediatamente en el estado local
     const orders = this.purchaseSubject.value;
@@ -104,7 +145,7 @@ export class PurchaseService {
     }
 
     // Luego intentar actualizar en el backend
-    return this.http.put<PurchaseOrder>(`${API_BASE_URL}/purchases/${id}`, changes).pipe(
+    return this.http.put<PurchaseOrder>(`${API_BASE_URL}/purchase-orders/${id}`, changes).pipe(
       tap(backendOrder => {
         // Actualizar con la respuesta del backend
         const orders = this.purchaseSubject.value;
@@ -126,7 +167,7 @@ export class PurchaseService {
     );
   }
 
-  // DELETE /purchases/{id}
+  // DELETE /purchase-orders/{id}
   delete(id: string): Observable<void> {
     // Primero eliminar del estado local para respuesta inmediata
     const updated = this.purchaseSubject.value.filter(order => order.id !== id);
@@ -134,7 +175,7 @@ export class PurchaseService {
     this.persist();
 
     // Luego intentar eliminar en el backend
-    return this.http.delete<void>(`${API_BASE_URL}/purchases/${id}`).pipe(
+    return this.http.delete<void>(`${API_BASE_URL}/purchase-orders/${id}`).pipe(
       tap(() => {
         // Ya se eliminó localmente, solo confirmar
         console.log('Orden eliminada del backend');
@@ -198,19 +239,61 @@ export class PurchaseService {
     };
   }
 
+  /**
+   * POST /purchase-orders/{id}/items - Agregar ítem a orden
+   */
+  addItemToOrder(orderId: string, item: PurchaseItem): Observable<PurchaseItem> {
+    return this.http.post<PurchaseItem>(`${API_BASE_URL}/purchase-orders/${orderId}/items`, item).pipe(
+      tap(newItem => {
+        const orders = this.purchaseSubject.value;
+        const orderIndex = orders.findIndex(o => o.id === orderId);
+        if (orderIndex !== -1) {
+          const updatedOrder = {
+            ...orders[orderIndex],
+            items: [...(orders[orderIndex].items || []), newItem]
+          };
+          const updated = [...orders];
+          updated[orderIndex] = updatedOrder;
+          this.purchaseSubject.next(updated);
+          this.persist();
+        }
+      })
+    );
+  }
+
+  /**
+   * Obtener restaurantes (usar RestaurantService si está disponible)
+   */
   getRestaurants() {
+    // Intentar obtener de la API si hay un servicio disponible
+    // Por ahora retornar datos estáticos como fallback
     return [...INVENTORY_RESTAURANTS];
   }
 
+  /**
+   * Obtener proveedores (usar ProveedorService si está disponible)
+   */
   getSuppliers() {
+    // Intentar obtener de la API si hay un servicio disponible
+    // Por ahora retornar datos estáticos como fallback
     return [...INVENTORY_SUPPLIERS];
   }
 
+  /**
+   * Obtener ingredientes (usar IngredientService si está disponible)
+   */
   getIngredients() {
+    // Intentar obtener de la API si hay un servicio disponible
+    // Por ahora retornar datos estáticos como fallback
     return [...INVENTORY_INGREDIENTS];
   }
 
+  /**
+   * Obtener unidades (usar IngredientService si está disponible)
+   */
   getUnits() {
+    // Intentar obtener de la API si hay un servicio disponible
+    // Por ahora retornar datos estáticos como fallback
     return [...INVENTORY_UNITS];
   }
 

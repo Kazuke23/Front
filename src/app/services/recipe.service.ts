@@ -25,12 +25,10 @@ export interface Recipe {
 }
 
 export interface CreateRecipeRequest {
-  restaurant_id: string;
   title: string;
   description: string;
   servings: number;
-  ingredients: RecipeIngredient[];
-  preparations: RecipePreparation[];
+  authorId: string;
 }
 
 export interface UpdateRecipeRequest {
@@ -44,49 +42,40 @@ export interface UpdateRecipeRequest {
   providedIn: 'root'
 })
 export class RecipeService {
-  private readonly apiUrl = `${API_CONFIG.baseUrl}/recipes`;
-
   constructor(private http: HttpClient) {}
 
   /**
-   * POST /recipes - Crear receta (HU-06)
+   * POST /restaurants/{restaurantId}/recipes - Crear receta
    */
-  createRecipe(data: CreateRecipeRequest): Observable<Recipe> {
-    return this.http.post<Recipe>(this.apiUrl, data);
-  }
-
-  /**
-   * GET /recipes - Listar todas las recetas
-   */
-  getRecipes(): Observable<Recipe[]> {
-    return this.http.get<Recipe[]>(this.apiUrl);
-  }
-
-  /**
-   * GET /recipes/{id} - Consultar receta específica
-   */
-  getRecipeById(id: string): Observable<Recipe> {
-    return this.http.get<Recipe>(`${this.apiUrl}/${id}`);
-  }
-
-  /**
-   * PUT /recipes/{id} - Editar receta (HU-08)
-   */
-  updateRecipe(id: string, data: UpdateRecipeRequest): Observable<Recipe> {
-    return this.http.put<Recipe>(`${this.apiUrl}/${id}`, data);
-  }
-
-  /**
-   * DELETE /recipes/{id} - Eliminar receta
-   */
-  deleteRecipe(id: string): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/${id}`);
-  }
-
-  /**
-   * POST /restaurants/{id}/recipes - Crear receta asociada a restaurante (HU-07)
-   */
-  createRecipeForRestaurant(restaurantId: string, data: CreateRecipeRequest): Observable<Recipe> {
+  createRecipe(restaurantId: string, data: CreateRecipeRequest): Observable<Recipe> {
     return this.http.post<Recipe>(`${API_CONFIG.baseUrl}/restaurants/${restaurantId}/recipes`, data);
+  }
+
+  /**
+   * GET /restaurants/{restaurantId}/recipes - Listar recetas de un restaurante
+   */
+  getRecipes(restaurantId: string): Observable<Recipe[]> {
+    return this.http.get<Recipe[]>(`${API_CONFIG.baseUrl}/restaurants/${restaurantId}/recipes`);
+  }
+
+  /**
+   * GET /restaurants/{restaurantId}/recipes/{recipeId} - Consultar receta específica
+   */
+  getRecipeById(restaurantId: string, recipeId: string): Observable<Recipe> {
+    return this.http.get<Recipe>(`${API_CONFIG.baseUrl}/restaurants/${restaurantId}/recipes/${recipeId}`);
+  }
+
+  /**
+   * PUT /restaurants/{restaurantId}/recipes/{recipeId} - Editar receta
+   */
+  updateRecipe(restaurantId: string, recipeId: string, data: UpdateRecipeRequest): Observable<Recipe> {
+    return this.http.put<Recipe>(`${API_CONFIG.baseUrl}/restaurants/${restaurantId}/recipes/${recipeId}`, data);
+  }
+
+  /**
+   * DELETE /restaurants/{restaurantId}/recipes/{recipeId} - Eliminar receta
+   */
+  deleteRecipe(restaurantId: string, recipeId: string): Observable<void> {
+    return this.http.delete<void>(`${API_CONFIG.baseUrl}/restaurants/${restaurantId}/recipes/${recipeId}`);
   }
 }

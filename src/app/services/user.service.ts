@@ -6,6 +6,8 @@ import { User } from './auth.service';
 
 export interface UserUpdateRequest {
   full_name?: string;
+  email?: string;
+  password?: string;
 }
 
 export interface AssignRoleRequest {

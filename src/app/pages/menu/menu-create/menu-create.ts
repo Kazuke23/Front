@@ -62,7 +62,8 @@ export class MenuCreate implements OnInit, OnDestroy {
   }
 
   loadMenuForEdit(id: string): void {
-    const menu = this.menuService.getMenuById(id);
+    // Usar el método síncrono que no requiere restaurantId
+    const menu = this.menuService.getMenuByIdSync(id);
     if (menu) {
       this.formData = {
         restaurante: menu.restauranteId,
@@ -70,6 +71,33 @@ export class MenuCreate implements OnInit, OnDestroy {
         fechaInicio: menu.fechaInicio,
         fechaFin: menu.fechaFin
       };
+    } else {
+      // Si no se encuentra localmente, intentar cargar desde la API
+      // Buscar en todos los restaurantes
+      this.restaurantService.getRestaurantsObservable().subscribe({
+        next: (restaurants) => {
+          let found = false;
+          for (const restaurant of restaurants) {
+            if (found) break;
+            this.menuService.getMenuById(restaurant.id, id).subscribe({
+              next: (menuFromApi) => {
+                if (menuFromApi && !found) {
+                  found = true;
+                  this.formData = {
+                    restaurante: menuFromApi.restauranteId,
+                    nombre: menuFromApi.nombre,
+                    fechaInicio: menuFromApi.fechaInicio,
+                    fechaFin: menuFromApi.fechaFin
+                  };
+                }
+              },
+              error: () => {
+                // Continuar buscando en el siguiente restaurante
+              }
+            });
+          }
+        }
+      });
     }
   }
 

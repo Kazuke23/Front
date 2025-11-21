@@ -5,26 +5,48 @@ import { API_CONFIG } from '../config/api.config';
 
 export interface Unit {
   id: string;
-  name?: string;
-  code?: string;
+  code: string;
+  description: string;
 }
 
 export interface Ingredient {
   id: string;
+  code?: string;
   name: string;
-  default_unit_id: string;
-  calories_per_unit?: number;
   description?: string;
+  caloriesPerUnit?: number;
+  defaultUnit?: {
+    id: string;
+    code: string;
+    description: string;
+  };
+  // Compatibilidad con formato anterior
+  default_unit_id?: string;
+  calories_per_unit?: number;
 }
 
 export interface CreateIngredientRequest {
+  code: string;
   name: string;
-  default_unit_id: string;
-  calories_per_unit?: number;
+  description?: string;
+  caloriesPerUnit?: number;
+  defaultUnit: {
+    id: string;
+    code: string;
+    description: string;
+  };
 }
 
 export interface UpdateIngredientRequest {
+  code?: string;
+  name?: string;
   description?: string;
+  caloriesPerUnit?: number;
+  defaultUnit?: {
+    id: string;
+    code: string;
+    description: string;
+  };
 }
 
 @Injectable({
@@ -76,5 +98,12 @@ export class IngredientService {
    */
   getUnits(): Observable<Unit[]> {
     return this.http.get<Unit[]>(this.unitsUrl);
+  }
+
+  /**
+   * POST /units - Crear unidad
+   */
+  createUnit(data: { id: string; code: string; description: string }): Observable<Unit> {
+    return this.http.post<Unit>(this.unitsUrl, data);
   }
 }

@@ -17,16 +17,24 @@ interface CreateSupplierRequest {
 
 interface SupplierItem {
   id?: string;
-  supplier_id: string;
-  ingredient_id: string;
-  price_per_unit: number;
-  unit_id: string;
+  supplierItemId?: string;
+  supplierId?: string;
+  ingredientId: string;
+  pricePerUnit: number;
+  unitId: string;
+  // Compatibilidad con formato anterior
+  supplier_id?: string;
+  ingredient_id?: string;
+  price_per_unit?: number;
+  unit_id?: string;
 }
 
 interface CreateSupplierItemRequest {
-  ingredient_id: string;
-  price_per_unit: number;
-  unit_id: string;
+  supplierItemId?: string;
+  supplierId?: string;
+  ingredientId: string;
+  pricePerUnit: number;
+  unitId: string;
 }
 
 @Injectable({
@@ -192,25 +200,42 @@ export class ProveedorService {
   }
 
   /**
-   * Eliminar proveedor (no hay endpoint DELETE en la API según la documentación)
+   * DELETE /suppliers/{id} - Eliminar proveedor
    */
   deleteProveedor(id: string): void {
-    const proveedores = this.proveedoresSubject.value.filter(p => p.id !== id);
-    this.proveedoresSubject.next(proveedores);
+    this.http.delete<void>(`${this.apiUrl}/${id}`).pipe(
+      tap(() => {
+        const proveedores = this.proveedoresSubject.value.filter(p => p.id !== id);
+        this.proveedoresSubject.next(proveedores);
+      }),
+      catchError(error => {
+        console.error('Error al eliminar proveedor:', error);
+        // Fallback: eliminar localmente
+        const proveedores = this.proveedoresSubject.value.filter(p => p.id !== id);
+        this.proveedoresSubject.next(proveedores);
+        return of(void 0);
+      })
+    ).subscribe();
   }
 
   /**
    * POST /suppliers/{id}/items - Registrar producto ofrecido por proveedor
    */
-  addSupplierItem(supplierId: string, data: CreateSupplierItemRequest): Observable<SupplierItem> {
-    return this.http.post<SupplierItem>(`${this.apiUrl}/${supplierId}/items`, data);
+  addSupplierItem(supplierId: string, ingredientId: string, pricePerUnit: number, unitId: string): Observable<SupplierItem> {
+    const requestBody: CreateSupplierItemRequest = {
+      supplierId: supplierId,
+      ingredientId: ingredientId,
+      pricePerUnit: pricePerUnit,
+      unitId: unitId
+    };
+    return this.http.post<SupplierItem>(`${this.apiUrl}/${supplierId}/items`, requestBody);
   }
 
   /**
-   * GET /suppliers/{id}/items - Listar productos del proveedor
+   * GET /suppliers/{id}/item-list - Listar productos del proveedor
    */
   getSupplierItems(supplierId: string): Observable<SupplierItem[]> {
-    return this.http.get<SupplierItem[]>(`${this.apiUrl}/${supplierId}/items`);
+    return this.http.get<SupplierItem[]>(`${this.apiUrl}/${supplierId}/item-list`);
   }
 }
 

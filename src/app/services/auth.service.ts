@@ -1,7 +1,7 @@
 import { Injectable, Inject, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, tap, catchError, of } from 'rxjs';
+import { BehaviorSubject, Observable, tap, catchError, of, map } from 'rxjs';
 import { API_CONFIG } from '../config/api.config';
 
 export interface User {
@@ -16,8 +16,14 @@ export interface User {
 }
 
 export interface LoginResponse {
+  message?: string;
+  userId?: string;
+  email?: string;
+  username?: string;
   token: string;
-  token_type: string;
+  roleId?: string;
+  roleName?: string;
+  token_type?: string;
   user?: User;
 }
 
@@ -110,12 +116,12 @@ export class AuthService {
     if (demoUsers[email] && demoUsers[email].password === password) {
       const demoUser = demoUsers[email].user;
       const mockResponse: LoginResponse = {
-        access_token: 'demo_token_' + Date.now(),
+        token: 'demo_token_' + Date.now(),
         token_type: 'Bearer',
         user: demoUser
       };
       
-      this.saveToken(mockResponse.access_token);
+      this.saveToken(mockResponse.token);
       this.normalizeUser(demoUser);
       this.setAuthState(true, demoUser);
       
@@ -127,32 +133,44 @@ export class AuthService {
       tap(response => {
         if (response.token) {
           this.saveToken(response.token);
-          if (response.user) {
-            this.normalizeUser(response.user);
-            this.setAuthState(true, response.user);
-          } else {
-            // Si no viene el usuario en la respuesta, obtenerlo
-            // this.getCurrentUserFromAPI();
+          
+          // Construir usuario desde la respuesta
+          let user: User | undefined = response.user;
+          if (!user && response.userId) {
+            user = {
+              id: response.userId,
+              email: response.email || email,
+              username: response.username,
+              nombre: response.username,
+              full_name: response.username,
+              role: response.roleName,
+              rol: response.roleName as 'Administrador' | 'Chef' | 'Usuario'
+            };
+          }
+          
+          if (user) {
+            this.normalizeUser(user);
+            this.setAuthState(true, user);
           }
         }
       }),
       catchError(error => {
         console.error('Error en login:', error);
-        // Si falla el backend y son credenciales demo, usar modo demo
-        if (demoUsers[email] && demoUsers[email].password === password) {
-          const demoUser = demoUsers[email].user;
-          const mockResponse: LoginResponse = {
-            access_token: 'demo_token_' + Date.now(),
-            token_type: 'Bearer',
-            user: demoUser
-          };
-          
-          this.saveToken(mockResponse.access_token);
-          this.normalizeUser(demoUser);
-          this.setAuthState(true, demoUser);
-          
-          return of(mockResponse);
-        }
+         // Si falla el backend y son credenciales demo, usar modo demo
+         if (demoUsers[email] && demoUsers[email].password === password) {
+           const demoUser = demoUsers[email].user;
+           const mockResponse: LoginResponse = {
+             token: 'demo_token_' + Date.now(),
+             token_type: 'Bearer',
+             user: demoUser
+           };
+           
+           this.saveToken(mockResponse.token);
+           this.normalizeUser(demoUser);
+           this.setAuthState(true, demoUser);
+           
+           return of(mockResponse);
+         }
         throw error;
       })
     );
@@ -181,18 +199,16 @@ export class AuthService {
   }
 
   /**
-   * Obtener usuario actual desde la API
+   * GET /auth/user/{id} - Obtener usuario por ID
    */
-  // private getCurrentUserFromAPI(): void {
-  //   this.http.get<User>(`${API_CONFIG.baseUrl}/users/me`).pipe(
-  //     catchError(() => of(null))
-  //   ).subscribe(user => {
-  //     if (user) {
-  //       this.normalizeUser(user);
-  //       this.setAuthState(true, user);
-  //     }
-  //   });
-  // }
+  getUserById(id: string): Observable<User> {
+    return this.http.get<User>(`${this.apiUrl}/user/${id}`).pipe(
+      map(user => {
+        this.normalizeUser(user);
+        return user;
+      })
+    );
+  }
 
   /**
    * Cerrar sesión

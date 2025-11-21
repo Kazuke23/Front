@@ -1,4 +1,4 @@
-export interface Menu {
+export interface clsMenu {
   id: string;
   restauranteId: string;
   restauranteNombre?: string;
@@ -9,6 +9,9 @@ export interface Menu {
   createdAt: Date;
   updatedAt: Date;
 }
+
+// Alias para compatibilidad
+export type Menu = clsMenu;
 
 export interface MenuFormData {
   restaurante: string;

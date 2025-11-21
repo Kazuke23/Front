@@ -16,17 +16,26 @@ interface ApiRestaurant {
 interface CreateRestaurantRequest {
   name: string;
   nit: string;
+  address?: string;
   city: string;
   country: string;
+  timezone?: string;
+  metadata?: {};
 }
 
 interface UpdateRestaurantRequest {
-  address: string;
+  name?: string;
+  nit?: string;
+  address?: string;
+  city?: string;
+  country?: string;
+  timezone?: string;
+  metadata?: {};
 }
 
 interface AssignUserRequest {
-  user_id: string;
-  role_id: string;
+  userId: string; // camelCase según API
+  roleId: string; // camelCase según API
 }
 
 @Injectable({
@@ -134,9 +143,12 @@ export class RestaurantService {
   addRestaurant(restaurant: Restaurant): void {
     const createRequest: CreateRestaurantRequest = {
       name: restaurant.name,
-      nit: '',
-      city: '',
-      country: ''
+      nit: (restaurant as any).nit || '',
+      address: restaurant.address,
+      city: (restaurant as any).city || '',
+      country: (restaurant as any).country || '',
+      timezone: (restaurant as any).timezone,
+      metadata: (restaurant as any).metadata
     };
 
     this.http.post<ApiRestaurant>(this.apiUrl, createRequest).pipe(
@@ -160,7 +172,13 @@ export class RestaurantService {
    */
   updateRestaurant(id: string, restaurant: Partial<Restaurant>): void {
     const updateRequest: UpdateRestaurantRequest = {
-      address: restaurant.address || ''
+      name: restaurant.name,
+      nit: (restaurant as any).nit,
+      address: restaurant.address,
+      city: (restaurant as any).city,
+      country: (restaurant as any).country,
+      timezone: (restaurant as any).timezone,
+      metadata: (restaurant as any).metadata
     };
 
     this.http.put<ApiRestaurant>(`${this.apiUrl}/${id}`, updateRequest).pipe(
@@ -184,11 +202,22 @@ export class RestaurantService {
   }
 
   /**
-   * Eliminar restaurante (no hay endpoint en la API, solo local)
+   * DELETE /restaurants/{id} - Eliminar restaurante
    */
   deleteRestaurant(id: string): void {
-    const restaurants = this.restaurantsSubject.value.filter(r => r.id !== id);
-    this.restaurantsSubject.next(restaurants);
+    this.http.delete<void>(`${this.apiUrl}/${id}`).pipe(
+      tap(() => {
+        const restaurants = this.restaurantsSubject.value.filter(r => r.id !== id);
+        this.restaurantsSubject.next(restaurants);
+      }),
+      catchError(error => {
+        console.error('Error al eliminar restaurante:', error);
+        // Fallback: eliminar localmente
+        const restaurants = this.restaurantsSubject.value.filter(r => r.id !== id);
+        this.restaurantsSubject.next(restaurants);
+        return of(void 0);
+      })
+    ).subscribe();
   }
 
   /**
