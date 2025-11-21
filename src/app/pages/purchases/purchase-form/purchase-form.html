@@ -1,110 +1,92 @@
 <div class="purchase-form-page">
-  <section class="form-hero">
-    <div class="hero-content">
-      <p class="eyebrow">Gestión de Compras</p>
-      <h1>{{ pageTitle }}</h1>
-      <p>
-        Registra y gestiona tus pedidos a proveedores, asegurando el stock necesario para tus operaciones.
-      </p>
-      <div class="hero-tags">
-        <span>Control de inventario</span>
-        <span>Optimización de costos</span>
-      </div>
-    </div>
-    <div class="hero-image">
-      <img src="https://images.unsplash.com/photo-1587560440462-772956505563?auto=format&fit=crop&w=900&q=80" alt="Formulario de Compras" />
-    </div>
-  </section>
+  <div class="form-header">
+    <h1>CREAR COMPRAS</h1>
+    <button class="back-btn" (click)="goBack()">Volver</button>
+  </div>
 
-  <form [formGroup]="form" (ngSubmit)="submit()" class="purchase-form">
-    <div class="form-grid">
-      <article class="form-card">
-        <h2>Detalles del Pedido</h2>
-        <div class="fields-grid">
-          <label [class]="getFieldClass('restaurant_id')">
-            <span>Sede *</span>
-            <select formControlName="restaurant_id">
+  <div class="form-content">
+    <div class="form-section">
+      <h2 class="section-title">NUEVA COMPRA</h2>
+      <form [formGroup]="form" (ngSubmit)="submit()" class="purchase-form">
+        <div class="form-fields">
+          <div class="form-field" [ngClass]="getFieldClass('name')">
+            <label for="name">Nombre</label>
+            <input
+              type="text"
+              id="name"
+              formControlName="name"
+              placeholder="Nombre de la compra"
+            />
+            <span class="error-message" *ngIf="form.get('name')?.touched && form.get('name')?.invalid">
+              El nombre es requerido
+            </span>
+          </div>
+
+          <div class="form-field" [ngClass]="getFieldClass('date')">
+            <label for="date">Fecha</label>
+            <input
+              type="date"
+              id="date"
+              formControlName="date"
+            />
+            <span class="error-message" *ngIf="form.get('date')?.touched && form.get('date')?.invalid">
+              La fecha es requerida
+            </span>
+          </div>
+
+          <div class="form-field" [ngClass]="getFieldClass('value')">
+            <label for="value">Valor</label>
+            <input
+              type="number"
+              id="value"
+              formControlName="value"
+              placeholder="Valor de la compra"
+              step="0.01"
+              min="0"
+            />
+            <span class="error-message" *ngIf="form.get('value')?.touched && form.get('value')?.invalid">
+              El valor es requerido
+            </span>
+          </div>
+
+          <div class="form-field" [ngClass]="getFieldClass('supplier_id')">
+            <label for="supplier">Proveedores</label>
+            <select id="supplier" formControlName="supplier_id">
+              <option value="">Seleccionar proveedor</option>
+              <option *ngFor="let supplier of suppliers" [value]="supplier.id">
+                {{ supplier.name }}
+              </option>
+            </select>
+            <span class="error-message" *ngIf="form.get('supplier_id')?.touched && form.get('supplier_id')?.invalid">
+              El proveedor es requerido
+            </span>
+          </div>
+
+          <div class="form-field" [ngClass]="getFieldClass('restaurant_id')">
+            <label for="restaurant">Restaurantes</label>
+            <select id="restaurant" formControlName="restaurant_id">
               <option value="">Seleccionar restaurante</option>
               <option *ngFor="let restaurant of restaurants" [value]="restaurant.id">
                 {{ restaurant.name }}
               </option>
             </select>
-          </label>
-
-          <label [class]="getFieldClass('supplier_id')">
-            <span>Proveedor *</span>
-            <select formControlName="supplier_id">
-              <option value="">Seleccionar proveedor</option>
-              <option *ngFor="let supplier of suppliers" [value]="supplier.id">{{ supplier.name }}</option>
-            </select>
-          </label>
-
-          <label [class]="getFieldClass('status')">
-            <span>Estado *</span>
-            <select formControlName="status">
-              <option *ngFor="let estado of estados" [value]="estado">{{ getStatusLabel(estado) }}</option>
-            </select>
-          </label>
-        </div>
-      </article>
-
-      <article class="form-card">
-        <h2>Ítems de la Compra</h2>
-        <div formArrayName="items" class="items-list">
-          <div *ngFor="let itemForm of itemsFormArray.controls; let i = index" [formGroupName]="i" class="item-row">
-            <label [class]="getItemFieldClass(i, 'ingredient_id')">
-              <span>Ingrediente *</span>
-              <select formControlName="ingredient_id">
-                <option value="">Seleccionar ingrediente</option>
-                <option *ngFor="let ingredient of ingredients" [value]="ingredient.id">
-                  {{ ingredient.name }}
-                </option>
-              </select>
-            </label>
-
-            <label [class]="getItemFieldClass(i, 'quantity')">
-              <span>Cantidad *</span>
-              <input type="number" min="0.01" step="0.01" formControlName="quantity" />
-            </label>
-
-            <label [class]="getItemFieldClass(i, 'unit_id')">
-              <span>Unidad *</span>
-              <select formControlName="unit_id">
-                <option *ngFor="let unit of units" [value]="unit.id">
-                  {{ unit.code }}
-                </option>
-              </select>
-            </label>
-
-            <label [class]="getItemFieldClass(i, 'price')">
-              <span>Precio Unitario *</span>
-              <input type="number" min="0" step="0.01" formControlName="price" />
-            </label>
-
-            <div class="item-subtotal">
-              <span>Subtotal</span>
-              <strong>${{ getItemSubtotal(i) | number:'1.2-2' }}</strong>
-            </div>
-
-            <button type="button" class="remove-item-btn" (click)="removeItem(i)" *ngIf="itemsFormArray.length > 1">
-              🗑️
-            </button>
+            <span class="error-message" *ngIf="form.get('restaurant_id')?.touched && form.get('restaurant_id')?.invalid">
+              El restaurante es requerido
+            </span>
           </div>
         </div>
-        <button type="button" class="add-item-btn" (click)="addItem()">+ Agregar Ítem</button>
 
-        <div class="total-section">
-          <div class="total-display">
-            <span>Total de la compra:</span>
-            <strong>${{ getTotal() | number:'1.2-2' }}</strong>
-          </div>
+        <div class="form-actions">
+          <button type="button" class="cancel-btn" (click)="cancel()">Cancelar</button>
+          <button type="submit" class="submit-btn" [disabled]="loading">
+            {{ loading ? 'Guardando...' : 'Guardar compra' }}
+          </button>
         </div>
-      </article>
+      </form>
     </div>
 
-    <footer class="form-actions">
-      <button type="button" class="ghost" (click)="cancel()">Cancelar</button>
-      <button type="submit" class="primary">{{ ctaLabel }}</button>
-    </footer>
-  </form>
+    <div class="form-image">
+      <img src="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1200&q=80" alt="Frutas y verduras frescas" />
+    </div>
+  </div>
 </div>

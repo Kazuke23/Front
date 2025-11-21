@@ -129,6 +129,12 @@ export class PurchaseListComponent implements OnInit, OnDestroy {
     this.router.navigate(['/compras/edit', id]);
   }
 
+  viewOrder(order: PurchaseOrderDisplay, event: MouseEvent): void {
+    event.stopPropagation();
+    // Por ahora redirige a editar, puedes cambiar esto a una vista de detalle
+    this.goToEdit(order.id);
+  }
+
   editOrder(order: PurchaseOrderDisplay, event: MouseEvent): void {
     event.stopPropagation();
     this.goToEdit(order.id);
@@ -224,6 +230,24 @@ export class PurchaseListComponent implements OnInit, OnDestroy {
 
   trackById(_: number, order: PurchaseOrderDisplay): string {
     return order.id;
+  }
+
+  getOrderDate(order: PurchaseOrderDisplay): string {
+    let date: Date;
+    // Si hay fecha en el order, usarla, sino generar una basada en el ID
+    if ((order as any).orderDate) {
+      date = new Date((order as any).orderDate);
+    } else {
+      // Generar fecha basada en el índice para mostrar algo
+      const index = this.orders.findIndex(o => o.id === order.id);
+      date = new Date();
+      date.setDate(date.getDate() - index);
+    }
+    // Formato DD/MM/YYYY
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
   }
 
   // Método para reinicializar datos si hay problemas

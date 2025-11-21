@@ -1,0 +1,118 @@
+<div class="restaurant-form-page">
+  <div class="form-header">
+    <button class="back-btn" (click)="goBack()">Volver</button>
+    <h1>{{ pageTitle }}</h1>
+    <p *ngIf="!isEditing">Complete los detalles a continuación para añadir un nuevo restaurante a su plataforma.</p>
+    <p *ngIf="isEditing">Modifique los detalles del restaurante a continuación.</p>
+  </div>
+
+  <div class="form-image">
+    <img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80" alt="Restaurante" />
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="submit()" class="restaurant-form">
+    <div class="form-grid">
+      <div class="form-column">
+        <div class="form-field" [ngClass]="getFieldClass('name')">
+          <label for="name">Nombre del Restaurante</label>
+          <input
+            type="text"
+            id="name"
+            formControlName="name"
+            placeholder="Ej. Sabor Latino"
+          />
+          <span class="error-message" *ngIf="form.get('name')?.touched && form.get('name')?.invalid">
+            El nombre es requerido
+          </span>
+        </div>
+
+        <div class="form-field" [ngClass]="getFieldClass('phone')">
+          <label for="phone">Teléfono de Contacto</label>
+          <input
+            type="text"
+            id="phone"
+            formControlName="phone"
+            placeholder="Ej. +34 123 456 789"
+          />
+          <span class="error-message" *ngIf="form.get('phone')?.touched && form.get('phone')?.invalid">
+            El teléfono es requerido
+          </span>
+        </div>
+
+        <div class="form-field" [ngClass]="getFieldClass('status')">
+          <label for="status">Estado Operacional</label>
+          <select id="status" formControlName="status">
+            <option value="">Seleccione el estado</option>
+            <option value="active">Activo</option>
+            <option value="pending">Pendiente</option>
+          </select>
+          <span class="error-message" *ngIf="form.get('status')?.touched && form.get('status')?.invalid">
+            El estado es requerido
+          </span>
+        </div>
+
+        <div class="form-field" [ngClass]="getFieldClass('openingHours')">
+          <label for="openingHours">Horario de Operación</label>
+          <input
+            type="text"
+            id="openingHours"
+            formControlName="openingHours"
+            placeholder="Ej. Lunes-Viernes: 9 AM - 10 PM"
+          />
+          <span class="error-message" *ngIf="form.get('openingHours')?.touched && form.get('openingHours')?.invalid">
+            El horario es requerido
+          </span>
+        </div>
+      </div>
+
+      <div class="form-column">
+        <div class="form-field" [ngClass]="getFieldClass('address')">
+          <label for="address">Dirección</label>
+          <input
+            type="text"
+            id="address"
+            formControlName="address"
+            placeholder="Ej. Calle Principal 123"
+          />
+          <span class="error-message" *ngIf="form.get('address')?.touched && form.get('address')?.invalid">
+            La dirección es requerida
+          </span>
+        </div>
+
+        <div class="form-field" [ngClass]="getFieldClass('cuisine')">
+          <label for="cuisine">Tipo de Cocina</label>
+          <select id="cuisine" formControlName="cuisine">
+            <option value="">Seleccione un tipo de cocina</option>
+            <option *ngFor="let cuisine of cuisineTypes" [value]="cuisine">{{ cuisine }}</option>
+          </select>
+          <span class="error-message" *ngIf="form.get('cuisine')?.touched && form.get('cuisine')?.invalid">
+            El tipo de cocina es requerido
+          </span>
+        </div>
+
+        <div class="form-field" [ngClass]="getFieldClass('rating')">
+          <label for="rating">Calificación (Estrellas)</label>
+          <select id="rating" formControlName="rating">
+            <option value="">Seleccione la calificación</option>
+            <option value="1">1 Estrella</option>
+            <option value="2">2 Estrellas</option>
+            <option value="3">3 Estrellas</option>
+            <option value="4">4 Estrellas</option>
+            <option value="5">5 Estrellas</option>
+          </select>
+          <span class="error-message" *ngIf="form.get('rating')?.touched && form.get('rating')?.invalid">
+            La calificación es requerida
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="button" class="cancel-btn" (click)="goBack()">Cancelar</button>
+      <button type="submit" class="submit-btn" [disabled]="loading">
+        {{ loading ? 'Guardando...' : 'Guardar Restaurante' }}
+      </button>
+    </div>
+  </form>
+</div>
+

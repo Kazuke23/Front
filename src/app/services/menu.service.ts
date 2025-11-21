@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, tap, catchError, of, map, forkJoin } from 'rxjs';
 import { Menu } from '../models/menu.model';
+import { Restaurant } from '../models/restaurant.model';
 import { RestaurantService } from './restaurant.service';
 import { API_CONFIG } from '../config/api.config';
 
@@ -48,14 +49,14 @@ export class MenuService {
   private loadAllMenus(): void {
     // Cargar restaurantes primero
     this.restaurantService.getRestaurantsObservable().subscribe({
-      next: (restaurants) => {
+      next: (restaurants: Restaurant[]) => {
         if (restaurants.length === 0) {
           this.loadFromLocalStorage();
           return;
         }
         
         // Cargar menús de cada restaurante
-        const menuObservables = restaurants.map(restaurant =>
+        const menuObservables = restaurants.map((restaurant: Restaurant) =>
           this.getMenusByRestaurant(restaurant.id).pipe(
             catchError(() => of([]))
           )
@@ -63,7 +64,7 @@ export class MenuService {
         
         // Combinar todos los menús
         forkJoin(menuObservables).subscribe({
-          next: (menusArrays) => {
+          next: (menusArrays: any[][]) => {
             const allMenus = menusArrays.flat();
             this.menusSubject.next(allMenus);
             if (allMenus.length > 0) {
