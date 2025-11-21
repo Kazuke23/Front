@@ -3,7 +3,7 @@ name: Deploy Angular to S3
 on:
   push:
     branches:
-      - main   #v17
+      - main #v18
 
 jobs:
   deploy:
@@ -25,12 +25,15 @@ jobs:
       - name: Build Angular
         run: npx ng build --configuration production
 
-      - name: Verify build
+      - name: Debug - Show ALL build files
         run: |
-          echo "✅ Build completado exitosamente"
-          echo "📁 Archivos generados:"
-          find dist -name "*.html" -type f
+          echo "=== ESTRUCTURA COMPLETA DE DIST ==="
           ls -la dist/
+          echo "=== TODOS LOS ARCHIVOS GENERADOS ==="
+          find dist -type f | head -30
+          echo "=== TAMAÑO DE ARCHIVOS ==="
+          du -sh dist/
+          find dist -name "*.js" -o -name "*.css" -o -name "*.html" | xargs ls -la
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -39,9 +42,28 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Deploy to S3
+      - name: Deploy ALL files to S3
         run: |
-          echo "🚀 Desplegando aplicación a S3..."
-          aws s3 sync dist/ s3://${{ secrets.S3_BUCKET_NAME }} --delete
-          echo "🎉 ¡Despliegue exitoso!"
-          echo "🌐 URL: http://${{ secrets.S3_BUCKET_NAME }}.s3-website.${{ secrets.AWS_REGION }}.amazonaws.com"
+          echo "🚀 DESPLEGANDO TODOS LOS ARCHIVOS..."
+          
+          # Encuentra la carpeta correcta del build
+          if [ -d "dist/frontend/browser" ]; then
+            echo "📁 Carpeta: dist/frontend/browser"
+            echo "📊 Contenido:"
+            ls -la dist/frontend/browser/ | head -10
+            aws s3 sync dist/frontend/browser/ s3://${{ secrets.S3_BUCKET_NAME }} --delete
+          elif [ -d "dist/browser" ]; then
+            echo "📁 Carpeta: dist/browser"
+            echo "📊 Contenido:"
+            ls -la dist/browser/ | head -10
+            aws s3 sync dist/browser/ s3://${{ secrets.S3_BUCKET_NAME }} --delete
+          else
+            echo "📁 Carpeta: dist/"
+            echo "📊 Contenido:"
+            ls -la dist/ | head -10
+            aws s3 sync dist/ s3://${{ secrets.S3_BUCKET_NAME }} --delete
+          fi
+          
+          echo "✅ Verificando archivos en S3..."
+          aws s3 ls s3://${{ secrets.S3_BUCKET_NAME }} --recursive --human-readable
+          echo "🎉 ¡TODOS los archivos desplegados!"
