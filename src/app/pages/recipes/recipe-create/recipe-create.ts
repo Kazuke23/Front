@@ -2,9 +2,10 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subscription } from 'rxjs';
+import { Subscription, catchError, of } from 'rxjs';
 import { Recipe, RECIPE_CATEGORIES } from '../../../models/recipe.model';
-import { RecipeService } from '../../../services/recipe.service';
+import { RecipeService, CreateRecipeRequest, RecipeIngredient, RecipePreparation, Recipe as ApiRecipe } from '../../../services/recipe.service';
+import { AuthService } from '../../../services/auth.service';
 
 @Component({
   selector: 'app-recipe-create',
@@ -31,7 +32,8 @@ export class RecipeCreateComponent implements OnInit, OnDestroy {
   constructor(
     private router: Router,
     private route: ActivatedRoute,
-    private recipeService: RecipeService
+    private recipeService: RecipeService,
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {
@@ -49,26 +51,59 @@ export class RecipeCreateComponent implements OnInit, OnDestroy {
 
   loadRecipeForEdit(id: string): void {
     try {
-      // Cargar receta desde localStorage
-      const storedRecipes = localStorage.getItem('recipes');
-      if (storedRecipes) {
-        const recipes: Recipe[] = JSON.parse(storedRecipes);
-        const recipe = recipes.find(r => r.id === id);
-        if (recipe) {
+      // Obtener el restaurante actual del usuario
+      const currentUser = this.authService.getCurrentUser();
+      const restaurantId = currentUser?.restaurant_id;
+      
+      if (restaurantId) {
+        // Cargar receta desde la API
+        this.recipeService.getRecipeById(restaurantId, id).pipe(
+          catchError(error => {
+            console.error('Error al cargar receta desde API:', error);
+            // Fallback: cargar desde localStorage
+            this.loadFromLocalStorage(id);
+            return of(null as any);
+          })
+        ).subscribe((recipe: ApiRecipe | null) => {
+          if (!recipe) return;
           this.formData = {
-            name: recipe.name,
-            tipoCocina: recipe.category,
-            ingredientes: recipe.ingredients.join(', '),
-            calorias: recipe.calories.toString(),
-            costoEstimado: recipe.cost.toString(),
-            tiempoPreparacion: recipe.preparation && recipe.preparation.length > 0 
-              ? (recipe.preparation.length * 5).toString() 
+            name: recipe.title,
+            tipoCocina: 'General', // La API no tiene categoría
+            ingredientes: recipe.ingredients?.map((ing: RecipeIngredient) => ing.ingredient_id).join(', ') || '',
+            calorias: '0', // La API no tiene calorías
+            costoEstimado: '0', // La API no tiene costo
+            tiempoPreparacion: recipe.preparations && recipe.preparations.length > 0 
+              ? (recipe.preparations.length * 5).toString() 
               : '30'
           };
-        }
+        });
+      } else {
+        // Fallback: cargar desde localStorage
+        this.loadFromLocalStorage(id);
       }
     } catch (error) {
       console.error('Error al cargar receta para editar:', error);
+      this.loadFromLocalStorage(id);
+    }
+  }
+
+  private loadFromLocalStorage(id: string): void {
+    const storedRecipes = localStorage.getItem('recipes');
+    if (storedRecipes) {
+      const recipes: Recipe[] = JSON.parse(storedRecipes);
+      const recipe = recipes.find(r => r.id === id);
+      if (recipe) {
+        this.formData = {
+          name: recipe.name,
+          tipoCocina: recipe.category,
+          ingredientes: recipe.ingredients.join(', '),
+          calorias: recipe.calories.toString(),
+          costoEstimado: recipe.cost.toString(),
+          tiempoPreparacion: recipe.preparation && recipe.preparation.length > 0 
+            ? (recipe.preparation.length * 5).toString() 
+            : '30'
+        };
+      }
     }
   }
 
@@ -119,6 +154,77 @@ export class RecipeCreateComponent implements OnInit, OnDestroy {
     }
 
     try {
+      // Obtener el restaurante actual del usuario
+      const currentUser = this.authService.getCurrentUser();
+      const restaurantId = currentUser?.restaurant_id;
+      const authorId = currentUser?.id || '';
+
+      if (!restaurantId) {
+        alert('No se pudo identificar el restaurante. Por favor inicia sesión nuevamente.');
+        return;
+      }
+
+      if (this.isEditing && this.recipeId && restaurantId) {
+        // Actualizar receta existente usando la API
+        const updateRequest: any = {
+          description: `Receta de ${this.formData.name}`,
+          servings: parseInt(this.formData.tiempoPreparacion) || 4,
+          ingredients: ingredientesArray.map((ingId, idx) => ({
+            ingredient_id: ingId,
+            quantity: 1,
+            unit_id: '' // Necesitarías obtener el unit_id correcto
+          })),
+          preparations: preparationSteps.map((step, idx) => ({
+            step_number: idx + 1,
+            instructions: step
+          }))
+        };
+
+        this.recipeService.updateRecipe(restaurantId, this.recipeId, updateRequest).pipe(
+          catchError(error => {
+            console.error('Error al actualizar receta en API:', error);
+            // Fallback: guardar en localStorage
+            this.saveToLocalStorage(true);
+            return of(null);
+          })
+        ).subscribe(() => {
+          setTimeout(() => {
+            this.router.navigate(['/recetas']);
+          }, 200);
+        });
+      } else if (restaurantId) {
+        // Crear nueva receta usando la API
+        const createRequest: CreateRecipeRequest = {
+          title: this.formData.name,
+          description: `Receta de ${this.formData.name}`,
+          servings: parseInt(this.formData.tiempoPreparacion) || 4,
+          authorId: authorId
+        };
+
+        this.recipeService.createRecipe(restaurantId, createRequest).pipe(
+          catchError(error => {
+            console.error('Error al crear receta en API:', error);
+            // Fallback: guardar en localStorage
+            this.saveToLocalStorage(false);
+            return of(null);
+          })
+        ).subscribe(() => {
+          setTimeout(() => {
+            this.router.navigate(['/recetas']);
+          }, 200);
+        });
+      } else {
+        // Fallback: guardar en localStorage si no hay restaurantId
+        this.saveToLocalStorage(this.isEditing);
+      }
+    } catch (error) {
+      console.error('Error al guardar receta:', error);
+      alert('Error al guardar la receta. Por favor intenta nuevamente.');
+    }
+  }
+
+  private saveToLocalStorage(isEditing: boolean): void {
+    try {
       let recipes: Recipe[] = [];
       const storedRecipes = localStorage.getItem('recipes');
       if (storedRecipes) {
@@ -129,30 +235,39 @@ export class RecipeCreateComponent implements OnInit, OnDestroy {
         }));
       }
 
-      if (this.isEditing && this.recipeId) {
-        // Actualizar receta existente
+      const ingredientesArray = this.formData.ingredientes
+        .split(/[,\n]/)
+        .map(ing => ing.trim())
+        .filter(ing => ing.length > 0);
+
+      const numSteps = Math.ceil(parseInt(this.formData.tiempoPreparacion) / 5);
+      const preparationSteps: string[] = [];
+      for (let i = 1; i <= numSteps; i++) {
+        preparationSteps.push(`Paso ${i}: Preparar los ingredientes y seguir el proceso de cocción.`);
+      }
+
+      if (isEditing && this.recipeId) {
         const index = recipes.findIndex(r => r.id === this.recipeId);
         if (index !== -1) {
           recipes[index] = {
             ...recipes[index],
             name: this.formData.name,
             category: this.formData.tipoCocina,
-            cost: costo,
-            calories: calorias,
+            cost: parseFloat(this.formData.costoEstimado),
+            calories: parseInt(this.formData.calorias),
             ingredients: ingredientesArray,
             preparation: preparationSteps,
             updatedAt: new Date()
           };
         }
       } else {
-        // Crear nueva receta
         const newRecipe: Recipe = {
           id: Date.now().toString(),
           name: this.formData.name,
           description: `Receta de ${this.formData.name}`,
           imageUrl: '',
-          cost: costo,
-          calories: calorias,
+          cost: parseFloat(this.formData.costoEstimado),
+          calories: parseInt(this.formData.calorias),
           category: this.formData.tipoCocina,
           ingredients: ingredientesArray,
           preparation: preparationSteps,
@@ -162,15 +277,13 @@ export class RecipeCreateComponent implements OnInit, OnDestroy {
         recipes.push(newRecipe);
       }
       
-      // Guardar en localStorage
       localStorage.setItem('recipes', JSON.stringify(recipes));
       
-      // Navegar a la lista
       setTimeout(() => {
         this.router.navigate(['/recetas']);
       }, 200);
     } catch (error) {
-      console.error('Error al guardar receta:', error);
+      console.error('Error al guardar en localStorage:', error);
       alert('Error al guardar la receta. Por favor intenta nuevamente.');
     }
   }

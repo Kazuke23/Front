@@ -2,10 +2,13 @@ import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subscription, filter } from 'rxjs';
+import { Subscription, filter, catchError, of, Observable } from 'rxjs';
 import { Recipe, RECIPE_CATEGORIES, SAMPLE_RECIPES } from '../../../models/recipe.model';
-import { RecipeService } from '../../../services/recipe.service';
+import { RecipeService, Recipe as ApiRecipe, RecipeIngredient, RecipePreparation } from '../../../services/recipe.service';
 import { AuthService } from '../../../services/auth.service';
+
+// Tipo para las recetas del frontend (modelo)
+type FrontendRecipe = Recipe;
 
 @Component({
   selector: 'app-recipe-list',
@@ -64,27 +67,62 @@ export class RecipeListComponent implements OnInit, OnDestroy {
 
   loadRecipes(): void {
     try {
-      // Por ahora usamos datos de ejemplo del modelo
-      // TODO: Conectar con RecipeService cuando esté disponible
-      const storedRecipes = localStorage.getItem('recipes');
-      if (storedRecipes) {
-        this.recipes = JSON.parse(storedRecipes).map((r: any) => ({
-          ...r,
-          createdAt: new Date(r.createdAt),
-          updatedAt: new Date(r.updatedAt)
-        }));
+      // Obtener el restaurante actual del usuario o el primero disponible
+      const currentUser = this.authService.getCurrentUser();
+      const restaurantId = currentUser?.restaurant_id;
+      
+      if (restaurantId) {
+        // Cargar recetas desde la API usando el servicio
+        this.recipeService.getRecipes(restaurantId).pipe(
+          catchError(error => {
+            console.error('Error al cargar recetas desde API:', error);
+            // Fallback: intentar cargar desde localStorage
+            this.loadFromLocalStorage();
+            return of([] as ApiRecipe[]);
+          })
+        ).subscribe((recipes: ApiRecipe[]) => {
+          // Convertir recetas de la API al formato del frontend
+          this.recipes = recipes.map((recipe: ApiRecipe): FrontendRecipe => ({
+            id: recipe.id,
+            name: recipe.title,
+            description: recipe.description,
+            category: 'General', // La API no tiene categoría, usar valor por defecto
+            ingredients: recipe.ingredients?.map((ing: RecipeIngredient) => ing.ingredient_id) || [],
+            preparation: recipe.preparations?.map((prep: RecipePreparation) => prep.instructions) || [],
+            calories: 0, // La API no tiene calorías en la receta
+            cost: 0, // La API no tiene costo en la receta
+            imageUrl: '',
+            createdAt: new Date(),
+            updatedAt: new Date()
+          }));
+          this.filterRecipes();
+          this.cdr.detectChanges();
+        });
       } else {
-        // Usar datos de ejemplo si no hay datos guardados
-        this.recipes = [...SAMPLE_RECIPES];
-        localStorage.setItem('recipes', JSON.stringify(this.recipes));
+        // Si no hay restaurantId, cargar desde localStorage como fallback
+        this.loadFromLocalStorage();
       }
-      this.filterRecipes();
-      this.cdr.detectChanges();
     } catch (error) {
       console.error('Error en loadRecipes:', error);
-      this.recipes = [...SAMPLE_RECIPES];
-      this.filterRecipes();
+      this.loadFromLocalStorage();
     }
+  }
+
+  private loadFromLocalStorage(): void {
+    const storedRecipes = localStorage.getItem('recipes');
+    if (storedRecipes) {
+      this.recipes = JSON.parse(storedRecipes).map((r: any) => ({
+        ...r,
+        createdAt: new Date(r.createdAt),
+        updatedAt: new Date(r.updatedAt)
+      }));
+    } else {
+      // Usar datos de ejemplo si no hay datos guardados
+      this.recipes = [...SAMPLE_RECIPES];
+      localStorage.setItem('recipes', JSON.stringify(this.recipes));
+    }
+    this.filterRecipes();
+    this.cdr.detectChanges();
   }
 
   onSearch(event: any): void {
@@ -118,12 +156,37 @@ export class RecipeListComponent implements OnInit, OnDestroy {
   deleteRecipe(recipe: Recipe): void {
     if (recipe && recipe.id) {
       if (confirm(`¿Estás seguro de que quieres eliminar la receta "${recipe.name}"?`)) {
-        this.recipes = this.recipes.filter(r => r.id !== recipe.id);
-        localStorage.setItem('recipes', JSON.stringify(this.recipes));
-        if (this.selectedRecipe?.id === recipe.id) {
-          this.selectedRecipe = null;
+        const currentUser = this.authService.getCurrentUser();
+        const restaurantId = currentUser?.restaurant_id;
+        
+        if (restaurantId) {
+          // Eliminar desde la API
+          this.recipeService.deleteRecipe(restaurantId, recipe.id).pipe(
+            catchError(error => {
+              console.error('Error al eliminar receta desde API:', error);
+              // Fallback: eliminar localmente
+              this.recipes = this.recipes.filter(r => r.id !== recipe.id);
+              localStorage.setItem('recipes', JSON.stringify(this.recipes));
+              return of(void 0);
+            })
+          ).subscribe(() => {
+            // Actualizar lista local
+            this.recipes = this.recipes.filter(r => r.id !== recipe.id);
+            if (this.selectedRecipe?.id === recipe.id) {
+              this.selectedRecipe = null;
+            }
+            this.filterRecipes();
+            this.cdr.detectChanges();
+          });
+        } else {
+          // Fallback: eliminar localmente si no hay restaurantId
+          this.recipes = this.recipes.filter(r => r.id !== recipe.id);
+          localStorage.setItem('recipes', JSON.stringify(this.recipes));
+          if (this.selectedRecipe?.id === recipe.id) {
+            this.selectedRecipe = null;
+          }
+          this.filterRecipes();
         }
-        this.filterRecipes();
       }
     }
   }

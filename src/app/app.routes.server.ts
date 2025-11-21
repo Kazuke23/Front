@@ -6,6 +6,26 @@ export const serverRoutes: ServerRoute[] = [
     path: 'menu/edit/:id',
     renderMode: RenderMode.Server
   },
+  {
+    path: 'recetas/edit/:id',
+    renderMode: RenderMode.Server
+  },
+  {
+    path: 'ingredientes/editar/:id',
+    renderMode: RenderMode.Server
+  },
+  {
+    path: 'inventario/admin/edit/:id',
+    renderMode: RenderMode.Server
+  },
+  {
+    path: 'proveedores/edit/:id',
+    renderMode: RenderMode.Server
+  },
+  {
+    path: 'compras/edit/:id',
+    renderMode: RenderMode.Server
+  },
   // Todas las demás rutas - prerender
   {
     path: '**',

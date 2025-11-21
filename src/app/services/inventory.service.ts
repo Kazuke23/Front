@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, tap, map, catchError, of } from 'rxjs';
+import { BehaviorSubject, Observable, tap, map, catchError, of, forkJoin } from 'rxjs';
 import {
   InventoryItem,
   InventoryItemDisplay,
@@ -16,6 +16,9 @@ import {
 } from '../models/inventory.model';
 
 import { API_CONFIG } from '../config/api.config';
+import { IngredientService, Ingredient as ApiIngredient, Unit as ApiUnit } from './ingredient.service';
+import { RestaurantService } from './restaurant.service';
+import { Restaurant } from '../models/restaurant.model';
 
 const API_BASE_URL = API_CONFIG.baseUrl;
 
@@ -27,11 +30,67 @@ export class InventoryService {
   private readonly inventorySubject = new BehaviorSubject<InventoryItem[]>([]);
   inventory$ = this.inventorySubject.asObservable();
 
-  constructor(private http: HttpClient) {
+  // Cache para ingredientes, unidades y restaurantes
+  private ingredientsCache: InventoryIngredient[] = [];
+  private unitsCache: InventoryUnit[] = [];
+  private restaurantsCache: InventoryRestaurant[] = [];
+
+  constructor(
+    private http: HttpClient,
+    private ingredientService: IngredientService,
+    private restaurantService: RestaurantService
+  ) {
     // Cargar desde localStorage como fallback mientras se conecta al backend
     this.loadFromStorage();
     // Intentar cargar desde el backend
     this.loadFromAPI();
+    // Cargar catálogos desde los servicios
+    this.loadCatalogs();
+  }
+
+  /**
+   * Cargar catálogos (ingredientes, unidades, restaurantes) desde los servicios
+   */
+  private loadCatalogs(): void {
+    // Cargar ingredientes
+    this.ingredientService.getIngredients().pipe(
+      catchError(error => {
+        console.warn('Error al cargar ingredientes, usando datos locales:', error);
+        return of([]);
+      })
+    ).subscribe((ingredients: ApiIngredient[]) => {
+      this.ingredientsCache = ingredients.map((ing: ApiIngredient): InventoryIngredient => ({
+        id: ing.id,
+        name: ing.name,
+        defaultUnitId: ing.defaultUnit?.id || ing.default_unit_id || ''
+      }));
+    });
+
+    // Cargar unidades
+    this.ingredientService.getUnits().pipe(
+      catchError(error => {
+        console.warn('Error al cargar unidades, usando datos locales:', error);
+        return of([]);
+      })
+    ).subscribe((units: ApiUnit[]) => {
+      this.unitsCache = units.map((unit: ApiUnit): InventoryUnit => ({
+        id: unit.id,
+        code: unit.code || unit.description || ''
+      }));
+    });
+
+    // Cargar restaurantes
+    this.restaurantService.getRestaurantsObservable().pipe(
+      catchError(error => {
+        console.warn('Error al cargar restaurantes, usando datos locales:', error);
+        return of([]);
+      })
+    ).subscribe((restaurants: Restaurant[]) => {
+      this.restaurantsCache = restaurants.map((rest: Restaurant): InventoryRestaurant => ({
+        id: rest.id,
+        name: rest.name
+      }));
+    });
   }
 
   // GET /inventory
@@ -211,15 +270,97 @@ export class InventoryService {
   }
 
   getRestaurants(): InventoryRestaurant[] {
+    // Retornar desde cache si está disponible, sino desde datos locales
+    if (this.restaurantsCache.length > 0) {
+      return [...this.restaurantsCache];
+    }
+    // Fallback a datos locales
     return [...INVENTORY_RESTAURANTS];
   }
 
   getIngredients(): InventoryIngredient[] {
+    // Retornar desde cache si está disponible, sino desde datos locales
+    if (this.ingredientsCache.length > 0) {
+      return [...this.ingredientsCache];
+    }
+    // Fallback a datos locales
     return [...INVENTORY_INGREDIENTS];
   }
 
   getUnits(): InventoryUnit[] {
+    // Retornar desde cache si está disponible, sino desde datos locales
+    if (this.unitsCache.length > 0) {
+      return [...this.unitsCache];
+    }
+    // Fallback a datos locales
     return [...INVENTORY_UNITS];
+  }
+
+  /**
+   * Obtener ingredientes como Observable (para carga asíncrona)
+   */
+  getIngredientsObservable(): Observable<InventoryIngredient[]> {
+    if (this.ingredientsCache.length > 0) {
+      return of([...this.ingredientsCache]);
+    }
+    return this.ingredientService.getIngredients().pipe(
+      map((ingredients: ApiIngredient[]) => {
+        this.ingredientsCache = ingredients.map((ing: ApiIngredient): InventoryIngredient => ({
+          id: ing.id,
+          name: ing.name,
+          defaultUnitId: ing.defaultUnit?.id || ing.default_unit_id || ''
+        }));
+        return [...this.ingredientsCache];
+      }),
+      catchError(error => {
+        console.warn('Error al cargar ingredientes, usando datos locales:', error);
+        return of([...INVENTORY_INGREDIENTS]);
+      })
+    );
+  }
+
+  /**
+   * Obtener unidades como Observable (para carga asíncrona)
+   */
+  getUnitsObservable(): Observable<InventoryUnit[]> {
+    if (this.unitsCache.length > 0) {
+      return of([...this.unitsCache]);
+    }
+    return this.ingredientService.getUnits().pipe(
+      map((units: ApiUnit[]) => {
+        this.unitsCache = units.map((unit: ApiUnit): InventoryUnit => ({
+          id: unit.id,
+          code: unit.code || unit.description || ''
+        }));
+        return [...this.unitsCache];
+      }),
+      catchError(error => {
+        console.warn('Error al cargar unidades, usando datos locales:', error);
+        return of([...INVENTORY_UNITS]);
+      })
+    );
+  }
+
+  /**
+   * Obtener restaurantes como Observable (para carga asíncrona)
+   */
+  getRestaurantsObservable(): Observable<InventoryRestaurant[]> {
+    if (this.restaurantsCache.length > 0) {
+      return of([...this.restaurantsCache]);
+    }
+    return this.restaurantService.getRestaurantsObservable().pipe(
+      map((restaurants: Restaurant[]) => {
+        this.restaurantsCache = restaurants.map((rest: Restaurant): InventoryRestaurant => ({
+          id: rest.id,
+          name: rest.name
+        }));
+        return [...this.restaurantsCache];
+      }),
+      catchError(error => {
+        console.warn('Error al cargar restaurantes, usando datos locales:', error);
+        return of([...INVENTORY_RESTAURANTS]);
+      })
+    );
   }
 
   getSuppliers(): InventorySupplier[] {
@@ -234,9 +375,13 @@ export class InventoryService {
   }
 
   private enrichItem(item: InventoryItem): InventoryItemDisplay {
-    const restaurant = INVENTORY_RESTAURANTS.find(r => r.id === item.restaurant_id);
-    const ingredient = INVENTORY_INGREDIENTS.find(i => i.id === item.ingredient_id);
-    const unit = INVENTORY_UNITS.find(u => u.id === item.unit_id);
+    // Buscar en cache primero, luego en datos locales como fallback
+    const restaurant = this.restaurantsCache.find(r => r.id === item.restaurant_id) 
+      || INVENTORY_RESTAURANTS.find(r => r.id === item.restaurant_id);
+    const ingredient = this.ingredientsCache.find(i => i.id === item.ingredient_id)
+      || INVENTORY_INGREDIENTS.find(i => i.id === item.ingredient_id);
+    const unit = this.unitsCache.find(u => u.id === item.unit_id)
+      || INVENTORY_UNITS.find(u => u.id === item.unit_id);
 
     let status: 'available' | 'low' | 'out' = 'available';
     if (item.quantity === 0) {
@@ -297,20 +442,24 @@ export class InventoryService {
           typeof item.quantity === 'number'
         )
         .map(item => {
-          // Verificar que los IDs existan en los catálogos
-          const restaurantExists = INVENTORY_RESTAURANTS.some(r => r.id === item.restaurant_id);
-          const ingredientExists = INVENTORY_INGREDIENTS.some(i => i.id === item.ingredient_id);
-          const unitExists = INVENTORY_UNITS.some(u => u.id === item.unit_id);
+          // Verificar que los IDs existan en los catálogos (usar cache si está disponible)
+          const restaurants = this.restaurantsCache.length > 0 ? this.restaurantsCache : INVENTORY_RESTAURANTS;
+          const ingredients = this.ingredientsCache.length > 0 ? this.ingredientsCache : INVENTORY_INGREDIENTS;
+          const units = this.unitsCache.length > 0 ? this.unitsCache : INVENTORY_UNITS;
+          
+          const restaurantExists = restaurants.some(r => r.id === item.restaurant_id);
+          const ingredientExists = ingredients.some(i => i.id === item.ingredient_id);
+          const unitExists = units.some(u => u.id === item.unit_id);
           
           // Si los IDs no existen, usar los primeros del catálogo
-          if (!restaurantExists && INVENTORY_RESTAURANTS.length > 0) {
-            item.restaurant_id = INVENTORY_RESTAURANTS[0].id;
+          if (!restaurantExists && restaurants.length > 0) {
+            item.restaurant_id = restaurants[0].id;
           }
-          if (!ingredientExists && INVENTORY_INGREDIENTS.length > 0) {
-            item.ingredient_id = INVENTORY_INGREDIENTS[0].id;
+          if (!ingredientExists && ingredients.length > 0) {
+            item.ingredient_id = ingredients[0].id;
           }
-          if (!unitExists && INVENTORY_UNITS.length > 0) {
-            item.unit_id = INVENTORY_UNITS[0].id;
+          if (!unitExists && units.length > 0) {
+            item.unit_id = units[0].id;
           }
           
           return item;

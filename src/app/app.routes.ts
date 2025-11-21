@@ -114,9 +114,13 @@ export const routes: Routes = [
     data: { roles: ['Administrador', 'Chef'] } // Administradores y Chefs
   },
   
-  { 
-    path: 'restaurantes', 
-    loadComponent: () => import('./pages/restaurants/restaurants').then(m => m.RestaurantsComponent),
+  {
+    path: 'restaurantes',
+    children: [
+      { path: '', loadComponent: () => import('./pages/restaurants/restaurant-list/restaurant-list').then(m => m.RestaurantListComponent) },
+      { path: 'create', loadComponent: () => import('./pages/restaurants/restaurant-form/restaurant-form').then(m => m.RestaurantFormComponent) },
+      { path: 'edit/:id', loadComponent: () => import('./pages/restaurants/restaurant-form/restaurant-form').then(m => m.RestaurantFormComponent) }
+    ],
     canActivate: [AuthGuard, RoleGuard],
     data: { roles: ['Administrador'] } // Solo administradores
   },

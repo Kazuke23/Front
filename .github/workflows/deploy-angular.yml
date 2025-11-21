@@ -1,0 +1,100 @@
+name: Deploy Angular to S3
+
+on:
+  push:
+    branches:
+      - main  #v24
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build Angular
+        run: |
+          npx ng build --configuration production
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Deploy files to S3
+        run: |
+          echo "🚀 Desplegando archivos..."
+          aws s3 sync dist/frontend/browser/ s3://${{ secrets.S3_BUCKET_NAME }} --delete
+
+      - name: Configure S3 Bucket for Website
+        run: |
+          echo "🔧 Configurando bucket S3 para website..."
+          
+          # Habilita hosting estático
+          aws s3 website s3://${{ secrets.S3_BUCKET_NAME }} \
+            --index-document index.html \
+            --error-document index.html
+          
+          echo "✅ Website configurado"
+
+      - name: Set Public Bucket Policy
+        run: |
+          echo "🔓 Configurando política pública..."
+          
+          # Política para acceso público
+          aws s3api put-bucket-policy \
+            --bucket ${{ secrets.S3_BUCKET_NAME }} \
+            --policy '{
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Sid": "PublicReadGetObject",
+                  "Effect": "Allow", 
+                  "Principal": "*",
+                  "Action": "s3:GetObject",
+                  "Resource": "arn:aws:s3:::'${{ secrets.S3_BUCKET_NAME }}'/*"
+                }
+              ]
+            }'
+          
+          echo "✅ Política pública configurada"
+
+      - name: Disable Block Public Access
+        run: |
+          echo "🔓 Deshabilitando bloqueo de acceso público..."
+          aws s3api put-public-access-block \
+            --bucket ${{ secrets.S3_BUCKET_NAME }} \
+            --public-access-block-configuration \
+            "BlockPublicAcls=false,IgnorePublicAcls=false,BlockPublicPolicy=false,RestrictPublicBuckets=false"
+          
+          echo "✅ Bloqueo de acceso público deshabilitado"
+
+      - name: Verify everything
+        run: |
+          echo "✅ Verificación final..."
+          echo "📁 Archivos en S3:"
+          aws s3 ls s3://${{ secrets.S3_BUCKET_NAME }} --recursive --human-readable
+          
+          echo ""
+          echo "🌐 Configuración del website:"
+          aws s3api get-bucket-website --bucket ${{ secrets.S3_BUCKET_NAME }}
+          
+          echo ""
+          echo "🔓 Configuración de acceso público:"
+          aws s3api get-public-access-block --bucket ${{ secrets.S3_BUCKET_NAME }}
+          
+          echo ""
+          echo "🎉 ¡CONFIGURACIÓN COMPLETADA!"
+          echo "🌐 URL: http://${{ secrets.S3_BUCKET_NAME }}.s3-website.${{ secrets.AWS_REGION }}.amazonaws.com"
