@@ -6,7 +6,7 @@
 
 /* Header */
 .form-header {
-  background: linear-gradient(135deg, #2196F3 0%, #42A5F5 100%);
+  background: linear-gradient(135deg, #E91E63 0%, #F06292 100%);
   padding: 40px 30px;
   color: white;
   margin-bottom: 30px;
@@ -102,9 +102,9 @@
 .form-input:focus,
 .form-select:focus,
 .form-textarea:focus {
-  border-color: #2196F3;
+  border-color: #E91E63;
   background: white;
-  box-shadow: 0 0 0 3px rgba(33,150,243,0.1);
+  box-shadow: 0 0 0 3px rgba(233,30,99,0.1);
 }
 
 .form-input::placeholder,
@@ -170,14 +170,14 @@
 }
 
 .btn-save {
-  background: linear-gradient(135deg, #2196F3 0%, #42A5F5 100%);
+  background: linear-gradient(135deg, #E91E63 0%, #F06292 100%);
   color: white;
-  box-shadow: 0 4px 12px rgba(33,150,243,0.2);
+  box-shadow: 0 4px 12px rgba(233,30,99,0.2);
 }
 
 .btn-save:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(33,150,243,0.3);
+  box-shadow: 0 8px 20px rgba(233,30,99,0.3);
 }
 
 .save-icon {
