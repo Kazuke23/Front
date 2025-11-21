@@ -1,0 +1,82 @@
+<div class="restaurant-list-page">
+  <div class="page-header">
+    <h1>Gestión de Restaurantes</h1>
+  </div>
+
+  <div class="search-bar">
+    <div class="search-group">
+      <span class="search-icon">🔍</span>
+      <input
+        type="text"
+        placeholder="Buscar restaurantes..."
+        [(ngModel)]="searchTerm"
+        (ngModelChange)="onFiltersChange()"
+      />
+    </div>
+    <button class="create-btn" (click)="goToCreate()">+ Crear Restaurante</button>
+  </div>
+
+  <div class="banner-image">
+    <img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80" alt="Restaurantes" />
+  </div>
+
+  <div class="list-section">
+    <div class="list-header">
+      <h2>Lista de Restaurantes</h2>
+      <p>Gestiona los restaurantes registrados en tu plataforma.</p>
+    </div>
+
+    <div class="table-wrapper" *ngIf="filteredRestaurants.length; else emptyState">
+      <table>
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Tipo de Cocina</th>
+            <th>Ubicación</th>
+            <th>Estado</th>
+            <th>Calificación</th>
+            <th>Contacto</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let restaurant of filteredRestaurants; trackBy: trackById">
+            <td>
+              <strong>{{ restaurant.name }}</strong>
+            </td>
+            <td>
+              <span class="cuisine-text">{{ restaurant.cuisine || 'N/A' }}</span>
+            </td>
+            <td>
+              <span>{{ restaurant.address || restaurant.city || 'N/A' }}</span>
+            </td>
+            <td>
+              <span class="status-chip" [ngClass]="getStatusClass(restaurant)">
+                {{ getStatusLabel(restaurant) }}
+              </span>
+            </td>
+            <td>
+              <span class="rating-text">{{ restaurant.rating || 0 }}</span>
+            </td>
+            <td>
+              <span>{{ restaurant.phone || 'N/A' }}</span>
+            </td>
+            <td class="actions">
+              <button class="action-btn" (click)="viewRestaurant(restaurant, $event)" title="Ver">👁️</button>
+              <button class="action-btn" (click)="editRestaurant(restaurant, $event)" title="Editar">✏️</button>
+              <button class="action-btn" (click)="deleteRestaurant(restaurant, $event)" title="Eliminar">🗑️</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <ng-template #emptyState>
+      <div class="empty-state">
+        <h3>Sin resultados</h3>
+        <p>Prueba con otro término o crea un nuevo restaurante.</p>
+        <button class="create-btn" (click)="goToCreate()">Crear nuevo restaurante</button>
+      </div>
+    </ng-template>
+  </div>
+</div>
+
