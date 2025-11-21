@@ -42,18 +42,56 @@ export class ProveedorService {
   }
 
   /**
-   * Cargar proveedores desde la API
+   * Cargar proveedores desde la API o localStorage
    */
   private loadSuppliers(): void {
     this.http.get<ApiSupplier[]>(this.apiUrl).pipe(
       map(apiSuppliers => apiSuppliers.map(api => this.apiToProveedor(api))),
+      tap(proveedores => {
+        // Guardar en localStorage como respaldo
+        this.saveToLocalStorage(proveedores);
+        this.proveedoresSubject.next(proveedores);
+      }),
       catchError(error => {
-        console.warn('Error al cargar proveedores desde API:', error);
-        return of([]);
+        console.warn('Error al cargar proveedores desde API, cargando desde localStorage:', error);
+        // Cargar desde localStorage como fallback
+        const localProveedores = this.loadFromLocalStorage();
+        this.proveedoresSubject.next(localProveedores);
+        return of(localProveedores);
       })
-    ).subscribe(proveedores => {
-      this.proveedoresSubject.next(proveedores);
-    });
+    ).subscribe();
+  }
+
+  /**
+   * Guardar proveedores en localStorage
+   */
+  private saveToLocalStorage(proveedores: Proveedor[]): void {
+    try {
+      localStorage.setItem('proveedores', JSON.stringify(proveedores));
+    } catch (error) {
+      console.error('Error al guardar proveedores en localStorage:', error);
+    }
+  }
+
+  /**
+   * Cargar proveedores desde localStorage
+   */
+  private loadFromLocalStorage(): Proveedor[] {
+    try {
+      const stored = localStorage.getItem('proveedores');
+      if (stored) {
+        const proveedores = JSON.parse(stored);
+        // Convertir fechas de string a Date
+        return proveedores.map((p: any) => ({
+          ...p,
+          createdAt: p.createdAt ? new Date(p.createdAt) : new Date(),
+          updatedAt: p.updatedAt ? new Date(p.updatedAt) : new Date()
+        }));
+      }
+    } catch (error) {
+      console.error('Error al cargar proveedores desde localStorage:', error);
+    }
+    return [];
   }
 
   /**
@@ -146,12 +184,14 @@ export class ProveedorService {
       tap(newProveedor => {
         const proveedores = [newProveedor, ...this.proveedoresSubject.value];
         this.proveedoresSubject.next(proveedores);
+        this.saveToLocalStorage(proveedores);
       }),
       catchError(error => {
         console.error('Error al crear proveedor en API, guardando localmente:', error);
         // Fallback: guardar localmente
         const proveedores = [proveedor, ...this.proveedoresSubject.value];
         this.proveedoresSubject.next(proveedores);
+        this.saveToLocalStorage(proveedores);
         return of(proveedor);
       })
     ).subscribe();
@@ -178,6 +218,7 @@ export class ProveedorService {
       tap(updated => {
         const proveedores = this.proveedoresSubject.value.map(p => p.id === id ? updated : p);
         this.proveedoresSubject.next(proveedores);
+        this.saveToLocalStorage(proveedores);
       }),
       catchError(error => {
         console.error('Error al actualizar proveedor en API, actualizando localmente:', error);
@@ -186,6 +227,7 @@ export class ProveedorService {
           p.id === id ? updatedProveedor : p
         );
         this.proveedoresSubject.next(proveedores);
+        this.saveToLocalStorage(proveedores);
         return of(updatedProveedor);
       })
     ).subscribe();
@@ -197,6 +239,7 @@ export class ProveedorService {
   deleteProveedor(id: string): void {
     const proveedores = this.proveedoresSubject.value.filter(p => p.id !== id);
     this.proveedoresSubject.next(proveedores);
+    this.saveToLocalStorage(proveedores);
   }
 
   /**
