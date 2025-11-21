@@ -3,7 +3,7 @@ name: Deploy Angular to S3
 on:
   push:
     branches:
-      - main   #v16
+      - main   #v22
 
 jobs:
   deploy:
@@ -22,15 +22,9 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Build Angular
-        run: npx ng build --configuration production
-
-      - name: Verify build
+      - name: Build Angular for S3
         run: |
-          echo "✅ Build completado exitosamente"
-          echo "📁 Archivos generados:"
-          find dist -name "*.html" -type f
-          ls -la dist/
+          npx ng build --configuration production --base-href ./
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -41,7 +35,19 @@ jobs:
 
       - name: Deploy to S3
         run: |
-          echo "🚀 Desplegando aplicación a S3..."
-          aws s3 sync dist/ s3://${{ secrets.S3_BUCKET_NAME }} --delete
+          echo "🚀 Desplegando desde: dist/frontend/browser/"
+          aws s3 sync dist/frontend/browser/ s3://${{ secrets.S3_BUCKET_NAME }} --delete
+
+      - name: Configure S3 for SPA
+        run: |
+          echo "🌐 Configurando S3 para Single Page Application..."
+          aws s3 website s3://${{ secrets.S3_BUCKET_NAME }} \
+            --index-document index.html \
+            --error-document index.html
+
+      - name: Verify deployment
+        run: |
+          echo "📊 Archivos desplegados en S3:"
+          aws s3 ls s3://${{ secrets.S3_BUCKET_NAME }} --recursive --human-readable
           echo "🎉 ¡Despliegue exitoso!"
           echo "🌐 URL: http://${{ secrets.S3_BUCKET_NAME }}.s3-website.${{ secrets.AWS_REGION }}.amazonaws.com"
