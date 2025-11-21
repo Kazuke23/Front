@@ -1,0 +1,53 @@
+name: Deploy Angular to S3
+
+on:
+  push:
+    branches:
+      - main  # ✅ Se ejecuta en main v14
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo (CURRENT branch - main)
+        uses: actions/checkout@v3
+        # ✅ NO necesita 'ref' porque YA está en main
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build Angular
+        run: npx ng build --configuration production
+
+      - name: Verify build output
+        run: |
+          echo "=== ¿SE GENERÓ DIST? ==="
+          if [ -d "dist" ]; then
+            echo "✅ DIST EXISTE:"
+            find dist -type f | head -10
+          else
+            echo "❌ NO HAY DIST - El build falló completamente"
+            echo "=== ARCHIVOS ACTUALES ==="
+            ls -la
+            exit 1
+          fi
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Deploy to S3
+        run: |
+          echo "🚀 DESPLEGANDO A S3..."
+          aws s3 sync dist/ s3://${{ secrets.S3_BUCKET_NAME }} --delete
+          echo "🎉 ¡DESPLIEGUE EXITOSO!"
