@@ -3,17 +3,21 @@
     <h1>Gestión de Restaurantes</h1>
   </div>
 
-  <div class="search-bar">
-    <div class="search-group">
-      <span class="search-icon">🔍</span>
-      <input
-        type="text"
-        placeholder="Buscar restaurantes..."
-        [(ngModel)]="searchTerm"
-        (ngModelChange)="onFiltersChange()"
-      />
+  <div class="action-bar">
+    <div class="search-container">
+      <div class="search-group">
+        <input
+          type="text"
+          placeholder="Buscar restaurantes..."
+          [(ngModel)]="searchTerm"
+          (ngModelChange)="onFiltersChange()"
+        />
+        <span class="search-icon">🔍</span>
+      </div>
     </div>
-    <button class="create-btn" (click)="goToCreate()">+ Crear Restaurante</button>
+    <button class="create-btn" (click)="goToCreate()">
+      <span>+</span> Crear Restaurante
+    </button>
   </div>
 
   <div class="banner-image">
@@ -36,11 +40,11 @@
             <th>Estado</th>
             <th>Calificación</th>
             <th>Contacto</th>
-            <th></th>
+            <th>Acciones</th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let restaurant of filteredRestaurants; trackBy: trackById">
+          <tr *ngFor="let restaurant of filteredRestaurants; trackBy: trackById; let even = even; let odd = odd" [class.even]="even" [class.odd]="odd">
             <td>
               <strong>{{ restaurant.name }}</strong>
             </td>
@@ -79,4 +83,3 @@
     </ng-template>
   </div>
 </div>
-

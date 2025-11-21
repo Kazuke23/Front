@@ -12,6 +12,9 @@ export interface Restaurant {
   openingHours: string;
   createdAt: Date;
   updatedAt: Date;
+  nit?: string;
+  city?: string;
+  country?: string;
 }
 
 export interface RestaurantFormData {
@@ -28,14 +31,17 @@ export interface RestaurantFormData {
 }
 
 export const CUISINE_TYPES = [
+  'Fusión Latinoamericana',
+  'Parrilla Argentina',
+  'Mediterránea Orgánica',
+  'Japonesa Tradicional',
+  'Italiana Casera',
   'Colombiana',
-  'Italiana',
   'Mexicana',
   'Asiática',
   'Mediterránea',
   'Americana',
   'Francesa',
-  'Japonesa',
   'China',
   'India',
   'Árabe',
@@ -43,7 +49,6 @@ export const CUISINE_TYPES = [
   'Vegana',
   'Mariscos',
   'Carnes',
-  'Parrilla',
   'Fast Food',
   'Fusión'
 ];

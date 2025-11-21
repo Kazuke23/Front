@@ -226,6 +226,18 @@ export class PurchaseListComponent implements OnInit, OnDestroy {
     return order.id;
   }
 
+  getOrderDate(order: PurchaseOrderDisplay): string {
+    // Si hay fecha en el order, usarla, sino generar una basada en el ID
+    if ((order as any).orderDate) {
+      return new Date((order as any).orderDate).toLocaleDateString('es-ES');
+    }
+    // Generar fecha basada en el índice para mostrar algo
+    const index = this.orders.findIndex(o => o.id === order.id);
+    const date = new Date();
+    date.setDate(date.getDate() - index);
+    return date.toLocaleDateString('es-ES');
+  }
+
   // Método para reinicializar datos si hay problemas
   resetData(): void {
     this.confirmService.confirm({
