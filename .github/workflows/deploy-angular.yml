@@ -3,7 +3,7 @@ name: Deploy Angular to S3
 on:
   push:
     branches:
-      - main   #v19
+      - main   #v20
 
 jobs:
   deploy:
@@ -19,11 +19,26 @@ jobs:
           node-version: 20
           cache: 'npm'
 
-      - name: Install and build
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build Angular
+        run: npx ng build --configuration production
+
+      - name: DEBUG - Check what was built
         run: |
-          npm install
-          # Fuerza base href para S3
-          npx ng build --configuration production --base-href ./
+          echo "=== ¿EXISTE DIST? ==="
+          ls -la | grep dist
+          echo "=== ESTRUCTURA COMPLETA DE DIST ==="
+          if [ -d "dist" ]; then
+            find dist -type f | head -20
+            echo "=== CONTENIDO DE INDEX.HTML ==="
+            find dist -name "index.html" -exec cat {} \;
+          else
+            echo "❌ ERROR: NO EXISTE DIRECTORIO DIST"
+            echo "=== ESTRUCTURA ACTUAL ==="
+            ls -la
+          fi
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -32,13 +47,24 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Deploy and configure S3 website
+      - name: DEBUG - Check S3 bucket before deploy
         run: |
-          # Despliega
-          aws s3 sync dist/ s3://${{ secrets.S3_BUCKET_NAME }} --delete
-          
-          # Habilita hosting estático
-          aws s3 website s3://${{ secrets.S3_BUCKET_NAME }} --index-document index.html --error-document index.html
-          
-          echo "🎉 ¡Despliegue completado!"
-          echo "🌐 URL: http://${{ secrets.S3_BUCKET_NAME }}.s3-website.${{ secrets.AWS_REGION }}.amazonaws.com"
+          echo "=== CONTENIDO ACTUAL DEL BUCKET S3 ==="
+          aws s3 ls s3://${{ secrets.S3_BUCKET_NAME }} --recursive || echo "❌ No se puede acceder al bucket"
+
+      - name: Deploy with verification
+        run: |
+          echo "🚀 INICIANDO DESPLIEGUE..."
+          if [ -d "dist" ]; then
+            echo "📁 Desplegando desde: dist/"
+            aws s3 sync dist/ s3://${{ secrets.S3_BUCKET_NAME }} --delete
+            echo "✅ Sync completado"
+          else
+            echo "❌ ERROR: No existe dist/"
+            exit 1
+          fi
+
+      - name: DEBUG - Check S3 bucket after deploy
+        run: |
+          echo "=== CONTENIDO DEL BUCKET DESPUÉS DEL DESPLIEGUE ==="
+          aws s3 ls s3://${{ secrets.S3_BUCKET_NAME }} --recursive --human-readable
