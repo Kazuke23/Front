@@ -2,8 +2,9 @@ import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { IngredientsService } from '../../services/ingredients.service';
+import { IngredientService, Ingredient as ApiIngredient } from '../../services/ingredient.service';
 import { Ingredient } from '../../models/ingredient.model';
+import { catchError, of } from 'rxjs';
 
 @Component({
   selector: 'app-ingredients',
@@ -19,9 +20,9 @@ export class IngredientsPage implements OnInit {
   searchTerm: string = '';
 
   constructor(
-    private ingredientsService: IngredientsService,
+    private ingredientService: IngredientService,
     private router: Router,
-    private cd: ChangeDetectorRef   // <-- INYECTAR ChangeDetectorRef
+    private cd: ChangeDetectorRef
   ) {}
 
   ngOnInit() {
@@ -30,15 +31,22 @@ export class IngredientsPage implements OnInit {
 
   loadIngredients() {
     this.loading = true;
-    this.ingredientsService.getIngredients().subscribe({
-      next: (res: Ingredient[]) => {
-        this.ingredients = [...res]; // nueva referencia
-        this.loading = false;
-      },
-      error: (err) => {
-        console.error('Error cargando ingredientes', err);
-        this.loading = false;
-      }
+    this.ingredientService.getIngredients().pipe(
+      catchError(error => {
+        console.error('Error cargando ingredientes desde API:', error);
+        return of([]);
+      })
+    ).subscribe((res: ApiIngredient[]) => {
+      // Convertir ingredientes de la API al formato del frontend
+      this.ingredients = res.map((ing: ApiIngredient): Ingredient => ({
+        id: ing.id,
+        name: ing.name,
+        default_unit_id: ing.defaultUnit?.id || ing.default_unit_id || '',
+        calories_per_unit: ing.caloriesPerUnit || ing.calories_per_unit || 0,
+        description: ing.description || ''
+      }));
+      this.loading = false;
+      this.cd.detectChanges();
     });
   }
 
@@ -84,20 +92,18 @@ export class IngredientsPage implements OnInit {
     this.cd.detectChanges();
 
     // 2) Llamada al servicio para eliminar en "backend"
-    this.ingredientsService.deleteIngredient(id).subscribe({
-      next: (res) => {
-        console.log('[deleteIngredient] respuesta del servicio:', res);
-        // Asegurarse de recargar la lista real desde el servicio (opcional)
-        this.loadIngredients(); // actualiza desde la fuente autoritativa
-        // y forzar otra vez la detección en caso de que el servicio emita la misma referencia
-        setTimeout(() => this.cd.detectChanges(), 0);
-      },
-      error: (err) => {
-        console.error('[deleteIngredient] error al eliminar en servicio:', err);
-        // Si falla el DELETE, revertir la eliminación local (mejor experiencia)
-        // (recomendado solo si tu servicio retorna error; evita duplicar lógica)
+    this.ingredientService.deleteIngredient(id).pipe(
+      catchError(error => {
+        console.error('[deleteIngredient] error al eliminar en servicio:', error);
+        // Si falla el DELETE, revertir la eliminación local
         this.loadIngredients(); // vuelve a pedir lista y restaura el estado
-      }
+        return of(void 0);
+      })
+    ).subscribe(() => {
+      console.log('[deleteIngredient] ingrediente eliminado exitosamente');
+      // Recargar la lista desde la API
+      this.loadIngredients();
+      setTimeout(() => this.cd.detectChanges(), 0);
     });
   }
 }

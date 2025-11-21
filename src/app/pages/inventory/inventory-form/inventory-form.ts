@@ -11,6 +11,7 @@ import {
   InventoryRestaurant,
   InventoryUnit
 } from '../../../models/inventory.model';
+import { Observable, forkJoin, catchError, map, of } from 'rxjs';
 
 @Component({
   selector: 'app-inventory-form',
@@ -29,6 +30,7 @@ export class InventoryFormComponent implements OnInit {
   restaurants: InventoryRestaurant[] = [];
   ingredients: InventoryIngredient[] = [];
   units: InventoryUnit[] = [];
+  loading = true;
 
   constructor(
     private fb: FormBuilder,
@@ -36,21 +38,48 @@ export class InventoryFormComponent implements OnInit {
     private route: ActivatedRoute,
     private inventoryService: InventoryService,
     private notificationService: NotificationService
-  ) {
-    this.restaurants = this.inventoryService.getRestaurants();
-    this.ingredients = this.inventoryService.getIngredients();
-    this.units = this.inventoryService.getUnits();
-  }
+  ) {}
 
   ngOnInit(): void {
-    this.buildForm();
-    const id = this.route.snapshot.paramMap.get('id');
-    if (id) {
-      this.isEditMode = true;
-      this.pageTitle = 'Actualizar inventario';
-      this.ctaLabel = 'Actualizar';
-      this.loadItem(id);
-    }
+    // Cargar catálogos desde los servicios
+    this.loadCatalogs().subscribe(() => {
+      this.buildForm();
+      const id = this.route.snapshot.paramMap.get('id');
+      if (id) {
+        this.isEditMode = true;
+        this.pageTitle = 'Actualizar inventario';
+        this.ctaLabel = 'Actualizar';
+        this.loadItem(id);
+      }
+    });
+  }
+
+  /**
+   * Cargar catálogos (restaurantes, ingredientes, unidades) desde los servicios
+   */
+  private loadCatalogs(): Observable<void> {
+    this.loading = true;
+    return forkJoin({
+      restaurants: this.inventoryService.getRestaurantsObservable(),
+      ingredients: this.inventoryService.getIngredientsObservable(),
+      units: this.inventoryService.getUnitsObservable()
+    }).pipe(
+      map(({ restaurants, ingredients, units }) => {
+        this.restaurants = restaurants;
+        this.ingredients = ingredients;
+        this.units = units;
+        this.loading = false;
+      }),
+      catchError(error => {
+        console.error('Error al cargar catálogos:', error);
+        // Fallback a datos locales
+        this.restaurants = this.inventoryService.getRestaurants();
+        this.ingredients = this.inventoryService.getIngredients();
+        this.units = this.inventoryService.getUnits();
+        this.loading = false;
+        return of(void 0);
+      })
+    );
   }
 
   private buildForm(): void {
