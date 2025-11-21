@@ -3,18 +3,17 @@ name: Deploy Angular to S3
 on:
   push:
     branches:
-      - main  # ✅ Se ejecuta en main v14
+      - main   #v15
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo (CURRENT branch - main)
+      - name: Checkout code
         uses: actions/checkout@v3
-        # ✅ NO necesita 'ref' porque YA está en main
 
-      - name: Set up Node.js 20
+      - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 20
@@ -26,18 +25,12 @@ jobs:
       - name: Build Angular
         run: npx ng build --configuration production
 
-      - name: Verify build output
+      - name: Verify build
         run: |
-          echo "=== ¿SE GENERÓ DIST? ==="
-          if [ -d "dist" ]; then
-            echo "✅ DIST EXISTE:"
-            find dist -type f | head -10
-          else
-            echo "❌ NO HAY DIST - El build falló completamente"
-            echo "=== ARCHIVOS ACTUALES ==="
-            ls -la
-            exit 1
-          fi
+          echo "✅ Build completado exitosamente"
+          echo "📁 Archivos generados:"
+          find dist -name "*.html" -type f
+          ls -la dist/
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -48,6 +41,7 @@ jobs:
 
       - name: Deploy to S3
         run: |
-          echo "🚀 DESPLEGANDO A S3..."
+          echo "🚀 Desplegando aplicación a S3..."
           aws s3 sync dist/ s3://${{ secrets.S3_BUCKET_NAME }} --delete
-          echo "🎉 ¡DESPLIEGUE EXITOSO!"
+          echo "🎉 ¡Despliegue exitoso!"
+          echo "🌐 URL: http://${{ secrets.S3_BUCKET_NAME }}.s3-website.${{ secrets.AWS_REGION }}.amazonaws.com"
